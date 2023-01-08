@@ -35,14 +35,13 @@ int main()
 	serv_addr.sin_addr.s_addr	= INADDR_ANY;
 	serv_addr.sin_port		= htons(20000);
 
-	if (bind(sockfd, (struct sockaddr *) &serv_addr,
-					sizeof(serv_addr)) < 0) {
+	if (bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0) {
 		perror("Unable to bind local address\n");
 		exit(0);
 	}
 
 	listen(sockfd, 5); 
-	while (1) {
+	while (1) {		// loop for handling multiple users
 
 		clilen = sizeof(cli_addr);
 		newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
@@ -52,27 +51,38 @@ int main()
 			exit(0);
 		}
 
-		buf = NULL;
-		len = 0, size = 0;
+		while (1){		// loop for handling multiple requests from user
 
-		while (1){
+			buf = NULL;
+			len = 0, size = 0;
 
-			if (len + 1 >= size){
+			while (1){	// loop for char-wise handling of client input
 
-				size = 2 * size + 1;
-				buf = realloc(buf, size);
+				if (len + 1 >= size){
+
+					size = 2 * size + 1;
+					buf = realloc(buf, size);
+				}
+
+				recv(newsockfd, &ch, 1, 0);
+				if (ch == '\0')		break;
+
+				printf("Received : %c\n", ch);
+				buf[len++] = ch;
 			}
 
-			recv(newsockfd, &ch, 1, 0);
-			if (ch == '\0')		break;
+			if (!strcmp(buf, "-1")){
 
-			printf("Received : %c\n", ch);
-			buf[len++] = ch;
+				printf("Client closed connection.\n\n");
+				break;
+			}
+
+			printf("Length : %zu\n", len);
+			printf("Expression : %s\n", buf);
+
+			// EXPRESSION EVALUATION DONE HERE
+
 		}
-
-		printf("Length : %zu\n", len);
-		printf("Expression : %s\n", buf);
-
 		close(newsockfd);
 	}
 	return 0;

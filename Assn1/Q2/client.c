@@ -24,19 +24,13 @@ int main(){
     serv_addr.sin_port = htons(20000);
     inet_aton("127.0.0.1", &serv_addr.sin_addr);
 
+    // Connect to server
+    if ((connect(sockfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr))) < 0){
+        perror("Client could not connect to server!");
+        exit(0);
+    }
+
     while (1){
-
-        /* 
-            For each iteration of client, a new connection is established with the server
-            This is done bcoz neither server (nor client) know how many iterations user will access the server
-            Granting exclusivity to a particular client in terms of connection time is both unreasonable and harder to implement
-        */
-
-        // Connect to server
-        if ((connect(sockfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr))) < 0){
-            perror("Client could not connect to server!");
-            exit(0);
-        }
 
         buf = NULL;
         size = 0, len = 0;
@@ -54,17 +48,15 @@ int main(){
         }
 	
         buf[len] = '\0';
+        send(sockfd, buf, len + 1, 0);
 
         // if user enters -1, process is terminated
         if (!strcmp(buf, "-1")){
 
-            printf("Process terminated.");
+            printf("Process terminated. Closing connection ...");
+            close(sockfd);  // close the connection after user terminates
             exit(0);
         }
-
-        send(sockfd, buf, len + 1, 0);
-        close(sockfd);  // close the connection after user terminates
-
     }
 	return 0;
 }
