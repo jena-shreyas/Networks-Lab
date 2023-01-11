@@ -6,14 +6,14 @@
 #include <sys/socket.h> 
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#define CHUNK_SIZE 10
+#define CHUNK_SIZE 5
 #define RESULT_SIZE 20
 
 double evaluate(char* buf){
 	
 	char ch;
-	int i = 0, number = 0;
-	double result = 0;
+	int i = 0;
+	double number = 0, result = 0;
 
 	// code to evaluate infix expression from left-to-right order without any precedence
 	// allowing a single pair of brackets and without using any stack
@@ -23,8 +23,7 @@ double evaluate(char* buf){
 
 		else if (ch >= '0' && ch <= '9'){
 
-			number = number * 10 + (ch - '0');
-			result = number;
+			result = result * 10.0 + (ch - '0');
 		}
 
 		else if (ch == '.'){
@@ -43,6 +42,7 @@ double evaluate(char* buf){
 			}
 			i--;
 		}
+
 		else if (ch == '+' || ch == '-' || ch == '*' || ch == '/'){
 
 			number = 0;
@@ -50,16 +50,46 @@ double evaluate(char* buf){
 			while (1){
 
 				ch = buf[i++];
-				if (ch == ' ')	continue;
-				if (ch == '+' || ch == '-' || ch == '*' || ch == '/' || ch == '\0')		break;
 
-				number = number * 10 + (ch - '0');
+				if (ch == ' ')	
+					continue;
+
+				if (ch == '+' || ch == '-' || ch == '*' || ch == '/' || ch == '\0')
+					break;
+
+				else if (ch >= '0' && ch <= '9'){
+
+					number = number * 10.0 + (ch - '0');
+				}
+
+				else if (ch == '.'){
+
+					double decimal = 10.0;
+					while (1){
+
+						ch = buf[i++];
+						if (ch == ' ')	continue;
+						if (ch >= '0' && ch <= '9'){
+
+							number += (ch - '0') / decimal;
+							decimal *= 10;
+						}
+						else break;
+					}
+				}
 			}
 
 			if (op == '+')		result += number;
 			else if (op == '-')	result -= number;
 			else if (op == '*')	result *= number;
-			else if (op == '/')	result /= number;
+			else if (op == '/')	{
+				
+				// if (number > -0.000001 && number < 0.000001)
+
+				// else
+					result /= number;
+			}
+
 			i--;
 		}
 
@@ -86,7 +116,7 @@ int main()
 	int	sockfd, newsockfd; 
 	int	clilen;
 	int size;
-	char *buf, *chunk_buf, ch;
+	char *buf, *chunk_buf;
 	char result[RESULT_SIZE];
 	struct sockaddr_in	cli_addr, serv_addr;
 
@@ -105,7 +135,9 @@ int main()
 	}
 
 	listen(sockfd, 5); 
-	while (1) {		// loop for handling multiple users
+
+	// loop for handling multiple users
+	while (1) {		
 
 		clilen = sizeof(cli_addr);
 		newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
@@ -115,50 +147,43 @@ int main()
 			exit(0);
 		}
 
-		chunk_buf = (char *)malloc((CHUNK_SIZE + 1) * sizeof(char));
+		chunk_buf = (char *)malloc(CHUNK_SIZE * sizeof(char));
 
-		while (1){		// loop for handling multiple requests from user
+		// loop for handling multiple requests from user
+		while (1){		
 
 			buf = NULL;
 			size = 0;
 
-			while(1){
+			// loop for chunk-wise handling of client input
+			while(1){	
 
-				int bytes_recv = recv(newsockfd, chunk_buf, CHUNK_SIZE, 0);				if (!strcmp(buf, "-1"))	{
-					
-					printf("Client closed connection.\n\n");
-					break;
-				}
+				int bytes_recv = recv(newsockfd, chunk_buf, CHUNK_SIZE, 0);				
+				// printf("Received : %s\n", chunk_buf);
+
 				size = size + bytes_recv;
+				// printf("Reallocating ...\n");
 				buf = realloc(buf, size);
-				strncat(buf, chunk_buf, bytes_recv);
-
-				if (strchr(chunk_buf, '\0') != NULL)	
-					break;
+				// printf("Concatenate ...\n");
+				strcat(buf, chunk_buf);
 				
+				char* null_ptr = strchr(chunk_buf, '\0');
+				size_t null_idx = (null_ptr - chunk_buf)/ sizeof(char); 
+				
+				// if null character detected at non-end position, end of input reached
+				if (null_idx < CHUNK_SIZE){		
+
+					// printf("End of input reached!\n");
+					break;
+				}				
 			}
-			// while (1){	// loop for char-wise handling of client input
 
-			// 	if (len + 1 >= size){
-
-			// 		size = 2 * size + 1;
-			// 		buf = realloc(buf, size);
-			// 	}
-
-			// 	recv(newsockfd, &ch, 1, 0);
-			// 	if (ch == '\0')		break;
-
-			// 	// printf("Received : %c\n", ch);
-			// 	buf[len++] = ch;
-			// }
-
-			if (!strcmp(buf, "-1")){
-
+			if (!strcmp(buf, "-1"))	{
+					
 				printf("Client closed connection.\n\n");
 				break;
 			}
 
-			printf("Length : %d\n", strlen(buf));
 			printf("Expression : %s\n", buf);
 
 			sprintf(result, "%lf", evaluate(buf));			// compute result and store it in result

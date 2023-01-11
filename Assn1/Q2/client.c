@@ -6,7 +6,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#define CHUNK_SIZE 10
+#define CHUNK_SIZE 5
 #define RESULT_SIZE 20
 
 int main(){
@@ -14,7 +14,7 @@ int main(){
     int sockfd;
     struct sockaddr_in serv_addr;
     char* buf;
-    long int sent_chunks = 0;
+    long int sent_chunks;
     char result[RESULT_SIZE];
 
     if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0){
@@ -35,27 +35,31 @@ int main(){
     while (1){
 
         buf = (char *)malloc((CHUNK_SIZE + 1) * sizeof(char));
+        sent_chunks = 0;
         printf("Enter a valid arithmetic expression : ");
 
         while(1){
             
             fgets(buf, CHUNK_SIZE + 1, stdin);
+            // printf("Received : %s\n", buf);
             char* nline = strchr(buf, '\n');
 
             if (nline != NULL){
 
+                // printf("End of input detected! \n");
                 int idx = (nline - buf) / sizeof(char);
-                for (int i = idx; i < CHUNK_SIZE; i++){
+                for (int i = idx; i <= CHUNK_SIZE; i++){
                     buf[i] = '\0';
                 }
             }
 
             send(sockfd, buf, CHUNK_SIZE, 0);     // send chunk to server
+            // printf("Sent : %s\n", buf);
 
             if (sent_chunks == 0 && !strcmp(buf, "-1")){       // if user enters -1, exit
 
-                perror("Process terminated. Closing connection ...");
-                close(sockfd);  // close the connection after user terminates
+                printf("Process terminated. Closing connection ...");
+                close(sockfd);                    // close the connection after user terminates
                 exit(0);
             }
 
@@ -66,31 +70,9 @@ int main(){
 
         }
 
-        // while ((ch = getchar()) != '\n'){
-
-        //     if (len + 1 >= size){
-
-        //         size = 2 * size + 1;
-        //         buf = realloc(buf, size);
-        //     }
-
-        //     buf[len++] = ch;
-        // }
-	
-        // buf[len] = '\0';
-        // send(sockfd, buf, len + 1, 0);
-
-        // if user enters -1, process is terminated
-        // if (!strcmp(buf, "-1")){
-
-        //     printf("Process terminated. Closing connection ...");
-        //     close(sockfd);  // close the connection after user terminates
-        //     exit(0);
-        // }
-
         // receive result of expression from server
         recv(sockfd, result, RESULT_SIZE, 0);
-        printf("Result of %s = %s\n", buf, result);
+        printf("Result = %s\n", result);
 
         free(buf);
 
