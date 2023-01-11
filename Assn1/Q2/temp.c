@@ -1,36 +1,23 @@
-#include <stdio.h>
+#include<stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
+#define CHUNK_SIZE 10
 
 int main(){
-    
-    int sockfd;
-    struct sockaddr_in serv_addr;
-    char ch;
-    size_t len = 0, size = 0;
-    char* buf = NULL;
 
-    buf = realloc(NULL, sizeof(char) * size);
-    printf("Enter a valid arithmetic expression : ");
-    
-    while ((ch = getchar()) != '\n'){
+    char* buf;
+    buf = (char *)malloc((CHUNK_SIZE + 1) * sizeof(char));
+    // scanf("%10s", buf);
+    fgets(buf, 10 + 1, stdin);
+    printf("%s\n", buf);
 
-        if (len + 1 >= size){
-
-            size = 2 * size + 1;
-            buf = realloc(buf, sizeof(char) * size);
-        }
-
-        buf[len++] = ch;
+    if (!strcmp(buf, "-1")){
+        printf("Same");
     }
-		
-    printf("Length : %zu", len);
-    printf("Expression : %s", buf);
-	return 0;
+    else    printf("Not same!");
 
+    fgets(buf, 10+1, stdin);
+    printf("%s", buf);
+
+    return 0;
 }
