@@ -1,3 +1,9 @@
+/*
+    NAME : SHREYAS JENA
+    ROLL : 20CS30049
+    ASSIGNMENT 1, Q2 (Client)
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -14,7 +20,7 @@ int main(){
     int sockfd;
     struct sockaddr_in serv_addr;
     char* buf;
-    long int sent_chunks;
+    long int sent_chunks;       // counts number of chunks sent for each user input
     char result[RESULT_SIZE];
 
     if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0){
@@ -32,21 +38,21 @@ int main(){
         exit(0);
     }
 
+    // loop for handling multiple user requests
     while (1){
 
         buf = (char *)malloc((CHUNK_SIZE + 1) * sizeof(char));
         sent_chunks = 0;
         printf("Enter a valid arithmetic expression : ");
 
+        // loop for chunk-wise processing of user input
         while(1){
             
             fgets(buf, CHUNK_SIZE + 1, stdin);
-            // printf("Received : %s\n", buf);
             char* nline = strchr(buf, '\n');
 
             if (nline != NULL){
 
-                // printf("End of input detected! \n");
                 int idx = (nline - buf) / sizeof(char);
                 for (int i = idx; i <= CHUNK_SIZE; i++){
                     buf[i] = '\0';
@@ -54,7 +60,6 @@ int main(){
             }
 
             send(sockfd, buf, CHUNK_SIZE, 0);     // send chunk to server
-            // printf("Sent : %s\n", buf);
 
             if (sent_chunks == 0 && !strcmp(buf, "-1")){       // if user enters -1, exit
 
@@ -73,6 +78,7 @@ int main(){
         // receive result of expression from server
         recv(sockfd, result, RESULT_SIZE, 0);
 
+        // handle division by zero error
         if (!strcmp(result, "Error : Division by zero!"))
             printf("%s\n", result);
         else

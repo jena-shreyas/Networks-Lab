@@ -1,3 +1,9 @@
+/*
+    NAME : SHREYAS JENA
+    ROLL : 20CS30049
+    ASSIGNMENT 1, Q1 (Client)
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -29,11 +35,9 @@ int main(){
     }
 
     for (i=0; i < 100; i++) buf[i] = '\0';
+
 	recv(sockfd, buf, 100, 0);
-	printf("%s", buf);
-	
-	// strcpy(buf,"Message from client\n");
-	// send(sockfd, buf, strlen(buf) + 1, 0);
+	printf("Local server time : %s", buf);
 		
 	close(sockfd);
 	return 0;

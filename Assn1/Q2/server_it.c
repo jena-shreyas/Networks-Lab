@@ -1,3 +1,9 @@
+/*
+    NAME : SHREYAS JENA
+    ROLL : 20CS30049
+    ASSIGNMENT 1, Q2 (Server)
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -11,6 +17,7 @@
 #define RESULT_SIZE 40
 #define PRECISION 6
 
+// function to evaluate value of arithmetic expression
 double* evaluate(char* buf){
 	
 	char ch;
@@ -50,7 +57,6 @@ double* evaluate(char* buf){
 
 			int brack_len = 0;
 			char* brack_start = buf + i * sizeof(char);
-			printf("Starting char : %c\n", *brack_start);
 
 			while ((ch = buf[i++]) != ')')
 				brack_len++;
@@ -58,7 +64,6 @@ double* evaluate(char* buf){
 			char* exp = (char *)malloc((brack_len + 1) * sizeof(char));
 			strncpy(exp, brack_start, brack_len);
 			exp[brack_len] = '\0';
-			printf("Exp : %s\n", exp);
 
 			double* brack_result = evaluate(exp);
 			if (brack_result == NULL)
@@ -98,7 +103,6 @@ double* evaluate(char* buf){
 						else if (ch >= '0' && ch <= '9'){
 
 							number += (ch - '0') / decimal;
-							// printf("Number : %lf", number);
 							decimal *= 10;
 						}
 						else {
@@ -112,7 +116,6 @@ double* evaluate(char* buf){
 
 					int brack_len = 0;
 					char* brack_start = buf + i * sizeof(char);
-					printf("Starting char : %c\n", *brack_start);
 
 					while ((ch = buf[i++]) != ')')
 						brack_len++;
@@ -120,7 +123,6 @@ double* evaluate(char* buf){
 					char* exp = (char *)malloc((brack_len + 1) * sizeof(char));
 					strncpy(exp, brack_start, brack_len);
 					exp[brack_len] = '\0';
-					printf("Exp : %s\n", exp);
 
 					double* brack_result = evaluate(exp);
 					if (brack_result == NULL)
@@ -135,7 +137,8 @@ double* evaluate(char* buf){
 			else if (op == '*')	result *= number;
 			else if (op == '/')	{
 				
-				if (number > -pow(10, -PRECISION) && number < pow(10, -PRECISION))		// specifying the precision for numbers considered as zero
+				// specifying the precision for numbers considered as zero
+				if (number > -pow(10, -PRECISION) && number < pow(10, -PRECISION))		
 					return NULL;
 				else
 					result /= number;
@@ -143,20 +146,6 @@ double* evaluate(char* buf){
 
 			i--;
 		}
-
-		// if (ch == '('){
-
-		// 	number = 0;
-		// 	while (1){
-
-		// 		ch = buf[i++];
-		// 		if (ch == ')')		break;
-
-		// 		number = number * 10 + (ch - '0');
-		// 	}
-		// 	result += number;
-		// }
-
 	}
 
 	ptr = &result;
@@ -210,24 +199,19 @@ int main()
 			// loop for chunk-wise handling of client input
 			while(1){	
 
-				int bytes_recv = recv(newsockfd, chunk_buf, CHUNK_SIZE, 0);				
-				// printf("Received : %s\n", chunk_buf);
-
+				int bytes_recv = recv(newsockfd, chunk_buf, CHUNK_SIZE, 0);		
+						
 				size = size + bytes_recv;
-				// printf("Reallocating ...\n");
 				buf = realloc(buf, size);
-				// printf("Concatenate ...\n");
 				strcat(buf, chunk_buf);
 				
 				char* null_ptr = strchr(chunk_buf, '\0');
 				size_t null_idx = (null_ptr - chunk_buf)/ sizeof(char); 
 				
 				// if null character detected at non-end position, end of input reached
-				if (null_idx < CHUNK_SIZE){		
-
-					// printf("End of input reached!\n");
+				if (null_idx < CHUNK_SIZE)	
 					break;
-				}				
+							
 			}
 
 			if (!strcmp(buf, "-1"))	{
