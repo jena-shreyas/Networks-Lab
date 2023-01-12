@@ -46,6 +46,25 @@ double* evaluate(char* buf){
 			i--;
 		}
 
+		else if (ch == '('){
+
+			int brack_len = 0;
+			char* brack_start = buf + i * sizeof(char);
+			printf("Starting char : %c\n", *brack_start);
+
+			while ((ch = buf[i++]) != ')')
+				brack_len++;
+
+			char* exp = (char *)malloc((brack_len + 1) * sizeof(char));
+			strncpy(exp, brack_start, brack_len);
+			exp[brack_len] = '\0';
+			printf("Exp : %s\n", exp);
+
+			double* brack_result = evaluate(exp);
+			number = *brack_result;
+			result += number;
+		}
+
 		else if (ch == '+' || ch == '-' || ch == '*' || ch == '/'){
 
 			number = 0;
