@@ -54,12 +54,13 @@ double evaluate(char* buf){
 				if (ch == ' ')	
 					continue;
 
-				if (ch == '+' || ch == '-' || ch == '*' || ch == '/' || ch == '\0')
+				else if (ch == '+' || ch == '-' || ch == '*' || ch == '/' || ch == '\0')
 					break;
 
 				else if (ch >= '0' && ch <= '9'){
 
 					number = number * 10.0 + (ch - '0');
+					// printf("Number : %lf", number);
 				}
 
 				else if (ch == '.'){
@@ -69,12 +70,16 @@ double evaluate(char* buf){
 
 						ch = buf[i++];
 						if (ch == ' ')	continue;
-						if (ch >= '0' && ch <= '9'){
+						else if (ch >= '0' && ch <= '9'){
 
 							number += (ch - '0') / decimal;
+							// printf("Number : %lf", number);
 							decimal *= 10;
 						}
-						else break;
+						else {
+							i--;
+							break;
+						}
 					}
 				}
 			}
