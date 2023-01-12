@@ -61,7 +61,11 @@ double* evaluate(char* buf){
 			printf("Exp : %s\n", exp);
 
 			double* brack_result = evaluate(exp);
-			number = *brack_result;
+			if (brack_result == NULL)
+				return NULL;
+			else
+				number = *brack_result;
+
 			result += number;
 		}
 
@@ -82,7 +86,6 @@ double* evaluate(char* buf){
 				else if (ch >= '0' && ch <= '9'){
 
 					number = number * 10.0 + (ch - '0');
-					// printf("Number : %lf", number);
 				}
 
 				else if (ch == '.'){
@@ -103,6 +106,27 @@ double* evaluate(char* buf){
 							break;
 						}
 					}
+				}
+
+				else if (ch == '('){
+
+					int brack_len = 0;
+					char* brack_start = buf + i * sizeof(char);
+					printf("Starting char : %c\n", *brack_start);
+
+					while ((ch = buf[i++]) != ')')
+						brack_len++;
+
+					char* exp = (char *)malloc((brack_len + 1) * sizeof(char));
+					strncpy(exp, brack_start, brack_len);
+					exp[brack_len] = '\0';
+					printf("Exp : %s\n", exp);
+
+					double* brack_result = evaluate(exp);
+					if (brack_result == NULL)
+						return NULL;
+					else
+						number = *brack_result;
 				}
 			}
 
