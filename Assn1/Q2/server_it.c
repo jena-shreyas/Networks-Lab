@@ -2,18 +2,21 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <math.h>
 #include <sys/types.h>
 #include <sys/socket.h> 
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #define CHUNK_SIZE 5
-#define RESULT_SIZE 20
+#define RESULT_SIZE 40
+#define PRECISION 6
 
-double evaluate(char* buf){
+double* evaluate(char* buf){
 	
 	char ch;
 	int i = 0;
 	double number = 0, result = 0;
+	double *ptr = NULL;
 
 	// code to evaluate infix expression from left-to-right order without any precedence
 	// allowing a single pair of brackets and without using any stack
@@ -89,9 +92,9 @@ double evaluate(char* buf){
 			else if (op == '*')	result *= number;
 			else if (op == '/')	{
 				
-				// if (number > -0.000001 && number < 0.000001)
-
-				// else
+				if (number > -pow(10, -PRECISION) && number < pow(10, -PRECISION))		// specifying the precision for numbers considered as zero
+					return NULL;
+				else
 					result /= number;
 			}
 
@@ -113,7 +116,8 @@ double evaluate(char* buf){
 
 	}
 
-	return result;
+	ptr = &result;
+	return ptr;
 }
 
 int main()
@@ -190,10 +194,14 @@ int main()
 			}
 
 			printf("Expression : %s\n", buf);
+			double *ans = evaluate(buf);
 
-			sprintf(result, "%lf", evaluate(buf));			// compute result and store it in result
+			if (ans == NULL)
+				strcpy(result, "Error : Division by zero!");
+			else
+				sprintf(result, "%lf", *ans);			    // compute result and store it in result
+
 			send(newsockfd, result, RESULT_SIZE, 0);		// send result to client
-
 			free(buf);
 		}
 

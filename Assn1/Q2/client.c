@@ -7,7 +7,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #define CHUNK_SIZE 5
-#define RESULT_SIZE 20
+#define RESULT_SIZE 40
 
 int main(){
 
@@ -72,7 +72,11 @@ int main(){
 
         // receive result of expression from server
         recv(sockfd, result, RESULT_SIZE, 0);
-        printf("Result = %s\n", result);
+
+        if (!strcmp(result, "Error : Division by zero!"))
+            printf("%s\n", result);
+        else
+            printf("Result = %s\n", result);
 
         free(buf);
 
