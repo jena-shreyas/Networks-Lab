@@ -15,6 +15,12 @@ int main(){
     int i;
     struct sockaddr_in servaddr, cliaddr;
     char buf[MAX_SIZE];
+    char *line = NULL;
+    short found;
+
+    FILE *fp;
+    const char *filename = "users.txt";
+    size_t len = 0;
 
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -54,11 +60,45 @@ int main(){
             strcpy(buf, "LOGIN:");
             send(newsockfd, buf, strlen(buf) + 1, 0);
 
-            for (i=0;i<MAX_SIZE;i++)    buf[i] = '\0';
-
             recv(newsockfd, buf, MAX_SIZE, 0);
             printf("Username : %s\n", buf);
-            
+
+            fp = fopen(filename, "r");
+
+            found = 0;
+            while (getline(&line, &len, fp) != -1){
+
+                // remove trailing newline in input line, if any
+                size_t ln = strlen(line) - 1;
+                if (line[ln] == '\n')
+                    line[ln] = '\0';
+
+                if (!strcmp(buf, line)){
+
+                    strcpy(buf, "FOUND");
+                    send(newsockfd, buf, strlen(buf) + 1, 0);
+                    found = 1;
+                    break;
+                }
+            }
+
+            if (found == 0){
+
+                strcpy(buf, "NOT-FOUND");
+                send(newsockfd, buf, strlen(buf) + 1, 0);
+
+                fclose(fp);
+                close(newsockfd);
+                exit(0);
+
+            }
+
+            else {
+
+                
+            }
+
+            fclose(fp);
             close(newsockfd);
             exit(0);
         }
