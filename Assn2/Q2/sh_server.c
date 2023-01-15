@@ -76,18 +76,18 @@ int main(){
                 if (!strcmp(buf, line)){
 
                     strcpy(buf, "FOUND");
-                    send(newsockfd, buf, strlen(buf) + 1, 0);
+                    send(newsockfd, buf, strlen(buf) + 1, 0);    // send username status
                     found = 1;
                     break;
                 }
             }
 
+            fclose(fp);
+
             if (found == 0){
 
                 strcpy(buf, "NOT-FOUND");
-                send(newsockfd, buf, strlen(buf) + 1, 0);
-
-                fclose(fp);
+                send(newsockfd, buf, strlen(buf) + 1, 0);           // send username status
                 close(newsockfd);
                 exit(0);
 
@@ -95,12 +95,34 @@ int main(){
 
             else {
 
-                
-            }
+                while(1) {
 
-            fclose(fp);
-            close(newsockfd);
-            exit(0);
+                    recv(newsockfd, buf, MAX_SIZE, 0);              // receive shell command
+                    printf("Shell command : %s\n", buf);
+
+                    if (!strcmp(buf, "exit")){
+
+                        printf("Exiting ...\n");
+                        close(newsockfd);
+                        exit(0);
+                    }
+
+                    else if (strcmp(buf, "pwd") && strcmp(buf, "dir") && strcmp(buf, "cd")){
+
+                        printf("Invalid command\n");
+                        strcpy(buf, "$$$$");
+                        send(newsockfd, buf, strlen(buf) + 1, 0);
+                    }
+
+                    else {
+
+                        printf("Valid command\n");
+                        strcpy(buf, "XXXX");                        // REMOVE THESE 2 LINES, RETURN RESULT INSTEAD
+                        send(newsockfd, buf, strlen(buf) + 1, 0);
+                        // RUN BASH COMMANDS IN C HERE
+                    }
+                }
+            }
         }
 
         close(newsockfd);

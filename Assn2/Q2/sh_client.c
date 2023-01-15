@@ -44,7 +44,45 @@ int main(){
     for(i=0;i<MAX_SIZE;i++) buf[i] = '\0';
     recv(sockfd, buf, MAX_SIZE, 0);             // receive username status
 
-    
+    if (!strcmp(buf, "NOT-FOUND")){
+
+        printf("Invalid username\n");
+        close(sockfd);
+        exit(EXIT_FAILURE);
+    }
+    else{
+
+        while(1){
+
+            printf("Enter a shell command : ");
+            scanf("%s", buf);
+
+            printf("Shell command : %s\n", buf);
+            size_t len = strlen(buf);
+            buf[len] = '\0';
+
+            send(sockfd, buf, strlen(buf) + 1, 0);    // send shell command to server
+
+            if (!strcmp(buf, "exit")){
+
+                close(sockfd);
+                exit(0);
+            }
+
+            recv(sockfd, buf, MAX_SIZE, 0);           // receive server response
+
+            if (!strcmp(buf, "$$$$"))
+                printf("Invalid command\n");
+
+            else if (!strcmp(buf, "####"))
+                printf("Error in running command\n");
+
+            else {
+                printf("Command correct, enter another one\n");
+                // HANDLE RESULTS RETURNED BY SERVER HERE
+            }   
+        }
+    }
     close(sockfd);
     return 0;
 
