@@ -38,7 +38,8 @@ int main(){
 
         clilen = sizeof(cliaddr);
 
-        newsockfd = accept(sockfd, (struct sockadrdr*)&cliaddr, &clilen);
+        newsockfd = accept(sockfd, (struct sockaddr*)&cliaddr, &clilen);
+
         if (newsockfd < 0){
             printf("Error while accepting connection request\n");
             exit(EXIT_FAILURE);
@@ -53,10 +54,16 @@ int main(){
             strcpy(buf, "LOGIN:");
             send(newsockfd, buf, strlen(buf) + 1, 0);
 
+            for (i=0;i<MAX_SIZE;i++)    buf[i] = '\0';
+
+            recv(newsockfd, buf, MAX_SIZE, 0);
+            printf("Username : %s\n", buf);
+            
+            close(newsockfd);
+            exit(0);
         }
 
         close(newsockfd);
     }
-    close(sockfd);
     return 0;
 }

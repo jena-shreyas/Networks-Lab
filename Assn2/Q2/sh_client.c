@@ -34,9 +34,14 @@ int main(){
     for(i=0;i<MAX_SIZE;i++) buf[i] = '\0';
 
     recv(sockfd, buf, MAX_SIZE, 0);
-    printf("%s\n", buf);
+    printf("%s", buf);
+
+    for(i=0;i<MAX_SIZE;i++) buf[i] = '\0';
+    scanf("%25s", buf);         
+
+    send(sockfd, buf, 26, 0);
 
     close(sockfd);
     return 0;
-    
+
 }
