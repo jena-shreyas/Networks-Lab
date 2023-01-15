@@ -35,14 +35,18 @@ int main(){
         exit(EXIT_FAILURE);
     }    
 
+    // initialize a buffer to send and receive data
+    // buffer size should be sufficient so as not to drop any packets
     buf = (char *)malloc(MAX_SIZE * sizeof(char));
 
     while (1){
 
+        // initially accept a message from prospective client to know its address
         strcpy(buf, "Message from server");
         len = sizeof(cliaddr);
         recvfrom(sockfd, buf, MAX_SIZE, 0, (struct sockaddr*)&cliaddr, &len);
 
+        // send server local time to client
         time_t t = time(NULL);
         local_time = localtime(&t);
         buf = asctime(local_time);

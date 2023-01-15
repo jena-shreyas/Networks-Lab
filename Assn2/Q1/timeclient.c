@@ -31,33 +31,33 @@ int main(){
     servaddr.sin_port = htons(8181);
     inet_aton("127.0.0.1", &servaddr.sin_addr);
 
-    // if (bind(sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr)) < 0){
-    //     perror("Bind error\n");
-    //     exit(EXIT_FAILURE);
-    // }
-
     for (i=0; i<MAX_SIZE; i++)   buf[i] = '\0';
 
     len = sizeof(servaddr);
-    num_tries = 0;
+    num_tries = 0;                  // count no. of tries 
 
-    struct pollfd fdset[1];
-    fdset[0].fd = sockfd;
-    fdset[0].events = POLLIN;
+    struct pollfd fdset[1];         // defines set of sockfds monitored by poll()
+    fdset[0].fd = sockfd;           // set 1st poll sockfd to our UDP socket
+    fdset[0].events = POLLIN;       // define "normal read without blocking" (POLLIN) as event to be monitored
 
+    // run till max tries limit (5) exceeded
     while (num_tries < MAX_TRIES){
 
         printf("Try : %d\n", (num_tries+1));
 
+        // first send a message to server, so server knows this client's address
         strcpy(buf, "Message from client");
         sendto(sockfd, buf, strlen(buf), 0, (struct sockaddr*)&servaddr, sizeof(servaddr));
 
+        // set up poll) for a timeout of 3 seconds
         int ret = poll(fdset, 1, TIMEOUT);
-        printf("Ret : %d\n", ret);
+        printf("poll() returned : %d\n", ret);
 
-        if (ret > 0){
+        // if poll detects the expected event in the socket
+        if (ret > 0){       
             if (fdset[0].revents == POLLIN){
 
+                //if read data without blocking possible, receive time from server, close client
                 int n = recvfrom(sockfd, buf, MAX_SIZE, 0, (struct sockaddr*)&servaddr, &len);
                 buf[n] = '\0';
                 printf("Server local time : %s", buf);
@@ -69,9 +69,12 @@ int main(){
     }
 
     printf("Number of tries : %d\n", num_tries);
-    if (num_tries == MAX_TRIES){
 
-        printf("Timeout exceeded\n");
+    // if max tries exceeded
+    if (num_tries == MAX_TRIES){        
+
+        // print timeoue exceeded message and close client
+        printf("Timeout exceeded\n");   
         close(sockfd);
         exit(EXIT_FAILURE);
     }
