@@ -6,14 +6,16 @@
 #include <sys/socket.h> 
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#define MAX_SIZE 50
+#define BUF_SIZE 50
+#define MAX_SIZE 200
 
 int main(){
 
     int sockfd;
     struct sockaddr_in servaddr;
     int i;
-    char buf[MAX_SIZE];
+    char buf[BUF_SIZE];
+    char input[MAX_SIZE];
 
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -31,58 +33,104 @@ int main(){
         exit(EXIT_FAILURE);
     }
 
-    for(i=0;i<MAX_SIZE;i++) buf[i] = '\0';
+    for(i=0;i<BUF_SIZE;i++) buf[i] = '\0';
 
-    recv(sockfd, buf, MAX_SIZE, 0);
+    // receive login prompt from server
+    recv(sockfd, buf, BUF_SIZE, 0);
     printf("%s", buf);
 
-    for(i=0;i<MAX_SIZE;i++) buf[i] = '\0';
+    // scan username from user
+    for(i=0;i<BUF_SIZE;i++) buf[i] = '\0';
     scanf("%25s", buf);         
+    getchar();                                  // To consume \n at end
 
-    send(sockfd, buf, 26, 0);                   // send username
+    // send username
+    send(sockfd, buf, 26, 0);                   
 
-    for(i=0;i<MAX_SIZE;i++) buf[i] = '\0';
-    recv(sockfd, buf, MAX_SIZE, 0);             // receive username status
+    // receive username status
+    for(i=0;i<BUF_SIZE;i++) buf[i] = '\0';
+    recv(sockfd, buf, BUF_SIZE, 0);             
 
+    // invalid username
     if (!strcmp(buf, "NOT-FOUND")){
 
         printf("Invalid username\n");
         close(sockfd);
         exit(EXIT_FAILURE);
     }
-    else{
+    else {
 
         while(1){
 
             printf("Enter a shell command : ");
-            scanf("%s", buf);
+            fgets(input, MAX_SIZE, stdin);
+            input[strlen(input) - 1] = '\0';        // null-terminating the input
 
-            printf("Shell command : %s\n", buf);
-            size_t len = strlen(buf);
-            buf[len] = '\0';
+            printf("Shell command : %s\n", input);
+            int i = 0, num_chars = 0;
 
-            send(sockfd, buf, strlen(buf) + 1, 0);    // send shell command to server
+            // clearing buffer
+            for (int j = 0; j<BUF_SIZE; j++)    buf[j] = '\0';
 
-            if (!strcmp(buf, "exit")){
+            // sending input in buffer-sized chunks
+            while (input[i] != '\0'){
+
+                buf[num_chars++] = input[i++];
+
+                if (i % (BUF_SIZE - 1) == 0){
+
+                    printf("Sending : %s\n", buf);
+                    printf("Length of packet : %zu\n", (strlen(buf) + 1));
+                    send(sockfd, buf, strlen(buf) + 1, 0);
+
+                    for (int j = 0; j < BUF_SIZE; j++)    buf[j] = '\0';      // clear buffer
+                    num_chars = 0;
+
+                }
+            }
+
+            // send the last packet
+            printf("Sending : %s\n", buf);
+            printf("Length of packet : %zu\n", (strlen(buf) + 1));
+            send(sockfd, buf, strlen(buf) + 1, 0);      
+
+            // if cmd = exit, close socket and exit
+            if (!strcmp(input, "exit")){
 
                 close(sockfd);
                 exit(0);
             }
 
-            recv(sockfd, buf, MAX_SIZE, 0);           // receive server response
+            // clear the input for storing result
+            for (int j = 0; j < MAX_SIZE; j++)   input[j] = '\0';
 
-            if (!strcmp(buf, "$$$$"))
+            // Input chunk receiving and assembling
+            // *** SOME ISSUE WHILE RECEVING, OUTPUT IS SENT CORRECTLY FROM SERVER END ***
+
+            while (1){
+
+                recv(sockfd, buf, BUF_SIZE, 0);
+                printf("Received : %s\n", buf);
+                printf("Length of packet : %zu\n", (strlen(buf) + 1));
+                strcat(input, buf);
+
+                if (strlen(buf) < (BUF_SIZE - 1))
+                    break;
+            }
+
+            printf("Response : \n%s\n\n", input);
+
+            if (!strcmp(input, "$$$$"))
                 printf("Invalid command\n");
 
-            else if (!strcmp(buf, "####"))
+            else if (!strcmp(input, "####"))
                 printf("Error in running command\n");
 
-            else {
-                printf("Command correct, enter another one\n");
-                // HANDLE RESULTS RETURNED BY SERVER HERE
-            }   
+            else 
+                printf("Result : \n%s\n\n", input);
         }
     }
+
     close(sockfd);
     return 0;
 
