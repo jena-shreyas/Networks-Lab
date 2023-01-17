@@ -66,7 +66,7 @@ int main(){
             fgets(input, MAX_SIZE, stdin);
             input[strlen(input) - 1] = '\0';        // null-terminating the input
 
-            printf("Shell command : %s\n", input);
+            // printf("Shell command : %s\n", input);
             int i = 0, num_chars = 0;
 
             // clearing buffer
@@ -79,8 +79,8 @@ int main(){
 
                 if (i % (BUF_SIZE - 1) == 0){
 
-                    printf("Sending : %s\n", buf);
-                    printf("Length of packet : %zu\n", (strlen(buf) + 1));
+                    // printf("Sending : %s\n", buf);
+                    // printf("Length of packet : %zu\n", (strlen(buf) + 1));
                     send(sockfd, buf, strlen(buf) + 1, 0);
 
                     for (int j = 0; j < BUF_SIZE; j++)    buf[j] = '\0';      // clear buffer
@@ -90,8 +90,8 @@ int main(){
             }
 
             // send the last packet
-            printf("Sending : %s\n", buf);
-            printf("Length of packet : %zu\n", (strlen(buf) + 1));
+            // printf("Sending : %s\n", buf);
+            // printf("Length of packet : %zu\n", (strlen(buf) + 1));
             send(sockfd, buf, strlen(buf) + 1, 0);      
 
             // if cmd = exit, close socket and exit
@@ -110,24 +110,24 @@ int main(){
             while (1){
 
                 recv(sockfd, buf, BUF_SIZE, 0);
-                printf("Received : %s\n", buf);
-                printf("Length of packet : %zu\n", (strlen(buf) + 1));
+                // printf("Received : %s\n", buf);
+                // printf("Length of packet : %zu\n", (strlen(buf) + 1));
                 strcat(input, buf);
 
                 if (strlen(buf) < (BUF_SIZE - 1))
                     break;
             }
 
-            printf("Response : \n%s\n\n", input);
+            // printf("Response : \n%s\n\n", input);
 
             if (!strcmp(input, "$$$$"))
-                printf("Invalid command\n");
+                printf("\nInvalid command\n\n");
 
             else if (!strcmp(input, "####"))
-                printf("Error in running command\n");
+                printf("\nError in running command\n\n");
 
             else 
-                printf("Result : \n%s\n\n", input);
+                printf("\nResult : \n%s\n\n", input);
         }
     }
 
