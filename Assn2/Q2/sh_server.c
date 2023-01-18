@@ -122,47 +122,31 @@ int main(){
                     while (1){
 
                         recv(newsockfd, buf, BUF_SIZE, 0);
-                        // printf("Received : %s\n", buf);
-                        // printf("Length of packet : %zu\n", (strlen(buf) + 1));
                         strcat(str, buf);
 
                         if (strlen(buf) < (BUF_SIZE - 1))
                             break;
                     }
 
-                    // printf("Shell command : %s\n", str);
-                    // printf("Length of str : %zu\n", strlen(str));
-
                     // Split input into shell command + directory
                     ptr = strtok(str, " ");
-                    strcpy(cmd, ptr);
-                    // printf("Command : %s\n", cmd);
+                    strcpy(cmd, ptr);       // store command
 
-                    // printf("F\n");
                     if (ptr != NULL){
 
-                        // printf("H\n");
                         ptr = strtok(NULL, " ");
-                        // printf("I\n");
-                        if (ptr != NULL){
-
-                            strcpy(dir, ptr);
-                            // printf("J\n");
-                            // printf("Directory : %s\n", dir);
-                        }
+                        if (ptr != NULL)
+                            strcpy(dir, ptr);      // store directory path
+                        
                     }
-                    // printf("G\n");
 
                     // clearing str for storing result
                     for (int j = 0; j < MAX_SIZE;j++)    str[j]='\0';
 
                     // if command = exit
-
-                    // printf("A\n");
                     if (!strcmp(cmd, "exit")){
 
-                        // printf("B\n");
-                        printf("Exiting ...\n");
+                        // printf("Exiting ...\n");
                         close(newsockfd);
                         exit(0);
                     }
@@ -170,14 +154,11 @@ int main(){
                     // if command = pwd
                     else if (!strcmp(cmd, "pwd")){
 
-                        // printf("C\n");
-                        // printf("Entered cwd\n");
                         char cwd[MAX_SIZE];
 
                         // error in running pwd
                         if (getcwd(cwd, sizeof(cwd)) == NULL){
 
-                            // printf("Error in pwd\n");
                             strcpy(buf, "####");
                             send(newsockfd, buf, strlen(buf) + 1, 0);
                             continue;
@@ -185,7 +166,6 @@ int main(){
 
                         else
                             // copy getcwd output to str
-                            // printf("Current directory : %s\n", cwd);
                             strcpy(str, cwd);       
                                 
                     }
@@ -193,7 +173,6 @@ int main(){
                     // if command = dir
                     else if (!strcmp(cmd, "dir")){
 
-                        // printf("D\n");
                         DIR *pDir;
 
                         // No argument passed, choose current directory
@@ -204,7 +183,6 @@ int main(){
                             
                         if (pDir == NULL){
 
-                            // printf("Could not open directory : %s\n", dir);
                             strcpy(buf, "####");
                             send(newsockfd, buf, strlen(buf) + 1, 0);
                             continue;
@@ -213,11 +191,9 @@ int main(){
                         else{
 
                             struct dirent *dent;
-                            // printf("Printing contents of directory : %s\n\n", dir);
 
                             while((dent = readdir(pDir)) != NULL){
 
-                                // printf("%s\n", dent->d_name);
                                 strcat(str, dent->d_name);
                                 strcat(str, "\n");
                             }
@@ -229,7 +205,6 @@ int main(){
                     // if command = cd
                     else if (!strcmp(cmd, "cd")){
 
-                        // printf("E\n");
                         char cwd[MAX_SIZE];
 
                         // No argument passed, choose current directory
@@ -238,15 +213,12 @@ int main(){
 
                         if (!chdir(dir)){       // chdir returns 0 when successful
 
-                            // printf("Directory change successful\n");
                             getcwd(cwd, sizeof(cwd));
-                            // printf("Current working directory : %s\n", cwd);
                             strcpy(str, cwd);
                         }
 
                         else{                   // chdir returns -1 when unsuccessful
 
-                            // printf("Error in cd\n");
                             strcpy(buf, "####");
                             send(newsockfd, buf, strlen(buf) + 1, 0);
                             continue;
@@ -255,16 +227,12 @@ int main(){
 
                     // if invalid command
                     else {
-                        // printf("F\n");
-                        // printf("Invalid command\n");
+
                         strcpy(buf, "$$$$");
                         send(newsockfd, buf, strlen(buf) + 1, 0);
                         continue;
                     }
 
-                    // DIVIDE str INTO CHUNKS AND SEND
-                    // printf("Final result : %s\nSending result ...\n\n", str);
-                
                     int i = 0, num_chars = 0;
 
                     // clearing buffer
@@ -277,8 +245,6 @@ int main(){
 
                         if (i % (BUF_SIZE - 1) == 0){
 
-                            // printf("Sending : %s\n", buf);
-                            // printf("Length of packet : %zu\n", (strlen(buf) + 1));
                             send(newsockfd, buf, strlen(buf) + 1, 0);
 
                             for (int j = 0; j < BUF_SIZE; j++)    buf[j] = '\0';      // clear buffer
@@ -288,11 +254,7 @@ int main(){
                     }
 
                     // send the last packet
-                    // printf("Sending : %s\n", buf);
-                    // printf("Length of packet : %zu\n", (strlen(buf) + 1));
                     send(newsockfd, buf, strlen(buf) + 1, 0);
-
-                    // printf("Result sent!\n\n");
 
                     free(cmd);
                     free(dir);
