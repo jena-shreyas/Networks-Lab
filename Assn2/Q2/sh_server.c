@@ -7,6 +7,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <dirent.h>
+#define CMD_SIZE 10
 #define BUF_SIZE 50
 #define MAX_SIZE 200
 
@@ -83,6 +84,7 @@ int main(){
                 if (!strcmp(buf, line)){
 
                     strcpy(buf, "FOUND");
+                    printf("User found!\n\n");
                     send(newsockfd, buf, strlen(buf) + 1, 0);    // send username status
                     found = 1;
                     break;
@@ -94,6 +96,7 @@ int main(){
             if (found == 0){
 
                 strcpy(buf, "NOT-FOUND");
+                printf("Invalid username\n\n");
                 send(newsockfd, buf, strlen(buf) + 1, 0);           // send username status
                 close(newsockfd);
                 exit(0);
@@ -109,7 +112,7 @@ int main(){
                     char* dir;      // stores input directory
                     char* ptr;
 
-                    cmd = (char *)malloc(10 * sizeof(char));
+                    cmd = (char *)malloc(CMD_SIZE * sizeof(char));
                     dir = (char *)malloc(MAX_SIZE * sizeof(char));
 
                     // clearing str for storing input
@@ -192,6 +195,11 @@ int main(){
 
                         // printf("D\n");
                         DIR *pDir;
+
+                        // No argument passed, choose current directory
+                        if (strlen(dir) == 0)     
+                            strcpy(dir, ".");
+
                         pDir = opendir(dir);
                             
                         if (pDir == NULL){
@@ -223,6 +231,10 @@ int main(){
 
                         // printf("E\n");
                         char cwd[MAX_SIZE];
+
+                        // No argument passed, choose current directory
+                        if (strlen(dir) == 0)     
+                            strcpy(dir, ".");
 
                         if (!chdir(dir)){       // chdir returns 0 when successful
 
