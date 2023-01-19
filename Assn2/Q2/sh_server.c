@@ -18,6 +18,7 @@ int main(){
     int i;
     struct sockaddr_in servaddr, cliaddr;
     char buf[BUF_SIZE];
+    char name[BUF_SIZE];
     char str[MAX_SIZE];
     char *line = NULL;
     short found;
@@ -59,15 +60,27 @@ int main(){
 
             close(sockfd);
 
-            for (i=0;i<BUF_SIZE;i++)    buf[i] = '\0';
+            memset(buf, '\0', BUF_SIZE);
 
             // send login prompt to client
             strcpy(buf, "LOGIN:");
             send(newsockfd, buf, strlen(buf) + 1, 0);
 
             // receive username
-            recv(newsockfd, buf, BUF_SIZE, 0);
-            printf("Username : %s\n", buf);
+            memset(buf, '\0', BUF_SIZE);
+            memset(name, '\0', BUF_SIZE);
+
+            while (1){
+
+                memset(buf, '\0', BUF_SIZE);
+                recv(newsockfd, buf, BUF_SIZE, 0);
+                strcat(name, buf);
+
+                if (strlen(buf) < (BUF_SIZE - 1))
+                    break;
+
+            }
+            printf("Username : %s\n", name);
 
             fp = fopen(filename, "r");
 
@@ -81,8 +94,9 @@ int main(){
                 if (line[ln] == '\n')
                     line[ln] = '\0';
 
-                if (!strcmp(buf, line)){
+                if (!strcmp(name, line)){
 
+                    memset(buf, '\0', BUF_SIZE);
                     strcpy(buf, "FOUND");
                     printf("User found!\n\n");
                     send(newsockfd, buf, strlen(buf) + 1, 0);    // send username status
@@ -95,6 +109,7 @@ int main(){
 
             if (found == 0){
 
+                memset(buf, '\0', BUF_SIZE);
                 strcpy(buf, "NOT-FOUND");
                 printf("Invalid username\n\n");
                 send(newsockfd, buf, strlen(buf) + 1, 0);           // send username status
@@ -119,19 +134,11 @@ int main(){
                     memset(str, '\0', MAX_SIZE);
 
                     // Input chunk receiving and assembling
-                    int ip_ctr = 0;
                     while (1){
 
                         memset(buf, '\0', BUF_SIZE);
                         recv(newsockfd, buf, BUF_SIZE, 0);
-
-                        if (ip_ctr == 0)
-                            strcpy(str, buf);
-
-                        else {
-                            ip_ctr++;
-                            strcat(str, buf);
-                        }
+                        strcat(str, buf);
 
                         if (strlen(buf) < (BUF_SIZE - 1))
                             break;
@@ -141,7 +148,7 @@ int main(){
                     memset(cmd, '\0', CMD_SIZE);
                     memset(dir, '\0', MAX_SIZE);
 
-                    printf("String before splitting : %s\n", str);
+                    // printf("String before splitting : %s\n", str);
                     // Split input into shell command + directory
                     ptr = strtok(str, " ");
                     strcpy(cmd, ptr);       // store command
@@ -152,7 +159,7 @@ int main(){
                         if (ptr != NULL){
 
                             strcpy(dir, ptr);       // store directory path
-                            printf("Dir while extracting : %s\n", dir);
+                            // printf("Dir while extracting : %s\n", dir);
                         }     
                     }
 
@@ -191,23 +198,23 @@ int main(){
                     else if (!strcmp(cmd, "dir")){
 
                         DIR *pDir;
-                        printf("Dir : %s\n", dir);
+                        // printf("Dir : %s\n", dir);
 
                         // No argument passed, choose current directory
                         if (strlen(dir) == 0){
 
                             char cwd[MAX_SIZE];
                             getcwd(cwd, sizeof(cwd));
-                            printf("Dir working directory : %s\n", cwd);
+                            // printf("Dir working directory : %s\n", cwd);
                             strcpy(dir, cwd);
                         }
 
-                        printf("Dir just before opendir : %s\n", dir);
+                        // printf("Dir just before opendir : %s\n", dir);
                         pDir = opendir(dir);
                             
                         if (pDir == NULL){
 
-                            printf("dir error\n");
+                            // printf("dir error\n");
                             memset(buf, '\0', BUF_SIZE);
                             strcpy(buf, "####");
                             send(newsockfd, buf, strlen(buf) + 1, 0);
@@ -241,13 +248,13 @@ int main(){
                         if (!chdir(dir)){       // chdir returns 0 when successful
 
                             getcwd(cwd, sizeof(cwd));
-                            printf("Current working directory : %s\n", cwd);
+                            // printf("Current working directory : %s\n", cwd);
                             strcpy(str, cwd);
                         }
 
                         else{                   // chdir returns -1 when unsuccessful
 
-                            printf("cd error\n");
+                            // printf("cd error\n");
                             memset(buf, '\0', BUF_SIZE);
                             strcpy(buf, "####");
                             send(newsockfd, buf, strlen(buf) + 1, 0);

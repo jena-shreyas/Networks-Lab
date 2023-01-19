@@ -15,6 +15,7 @@ int main(){
     struct sockaddr_in servaddr;
     int i;
     char buf[BUF_SIZE];
+    char tmp[BUF_SIZE];
     char input[MAX_SIZE];
 
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -33,14 +34,26 @@ int main(){
         exit(EXIT_FAILURE);
     }
 
-    for(i=0;i<BUF_SIZE;i++) buf[i] = '\0';
+    
 
     // receive login prompt from server
-    recv(sockfd, buf, BUF_SIZE, 0);
-    printf("%s", buf);
+    memset(buf, '\0', BUF_SIZE);
+    memset(tmp, '\0', BUF_SIZE);
+
+    while (1){
+
+        memset(buf, '\0', BUF_SIZE);
+        recv(sockfd, buf, BUF_SIZE, 0);
+        strcat(tmp, buf);
+
+        if (strlen(buf) < (BUF_SIZE - 1))
+            break;
+
+    }
+    printf("%s", tmp);
 
     // scan username from user
-    for(i=0;i<BUF_SIZE;i++) buf[i] = '\0';
+    memset(buf, '\0', BUF_SIZE);
     scanf("%25s", buf);         
     getchar();                                  // To consume \n at end
 
@@ -48,11 +61,21 @@ int main(){
     send(sockfd, buf, 26, 0);                   
 
     // receive username status
-    for(i=0;i<BUF_SIZE;i++) buf[i] = '\0';
-    recv(sockfd, buf, BUF_SIZE, 0);             
+    memset(buf, '\0', BUF_SIZE);
+    memset(tmp, '\0', BUF_SIZE);
+
+    while (1){
+
+        memset(buf, '\0', BUF_SIZE);
+        recv(sockfd, buf, BUF_SIZE, 0);
+        strcat(tmp, buf);
+
+        if (strlen(buf) < (BUF_SIZE - 1))
+            break;
+    }          
 
     // invalid username
-    if (!strcmp(buf, "NOT-FOUND")){
+    if (!strcmp(tmp, "NOT-FOUND")){
 
         printf("Invalid username\n");
         close(sockfd);
@@ -62,33 +85,39 @@ int main(){
 
         while(1){
 
+            memset(input, '\0', MAX_SIZE);
+
             printf("Enter a shell command : ");
             fgets(input, MAX_SIZE, stdin);
             input[strlen(input) - 1] = '\0';        // null-terminating the input
 
-            printf("Input to be sent : %s\n", input);
+            // printf("Input to be sent : %s\n", input);
 
             int i = 0, num_chars = 0;
 
             // clearing buffer
-            for (int j = 0; j<BUF_SIZE; j++)    buf[j] = '\0';
+            memset(buf, '\0', BUF_SIZE);
 
+            // printf("Before loop\n");
             // sending input in buffer-sized chunks
             while (input[i] != '\0'){
 
+                // printf("Within loop\n");
                 buf[num_chars++] = input[i++];
 
                 if (i % (BUF_SIZE - 1) == 0){
 
+                    // printf("Buffer to be sent : %s\n", buf);
                     send(sockfd, buf, strlen(buf) + 1, 0);
 
-                    for (int j = 0; j < BUF_SIZE; j++)    buf[j] = '\0';      // clear buffer
+                    memset(buf, '\0', BUF_SIZE);       // clear buffer
                     num_chars = 0;
 
                 }
             }
 
             // send the last packet
+            // printf("Buffer to be sent : %s\n", buf);
             send(sockfd, buf, strlen(buf) + 1, 0);      
 
             // if cmd = exit, close socket and exit
@@ -99,11 +128,12 @@ int main(){
             }
 
             // clear the input for storing result
-            for (int j = 0; j < MAX_SIZE; j++)   input[j] = '\0';
+            memset(input, '\0', MAX_SIZE);
 
             // Input chunk receiving and assembling
             while (1){
 
+                memset(buf, '\0', BUF_SIZE);
                 recv(sockfd, buf, BUF_SIZE, 0);
                 strcat(input, buf);
 
