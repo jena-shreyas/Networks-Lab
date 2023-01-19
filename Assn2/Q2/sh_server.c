@@ -148,7 +148,6 @@ int main(){
                     memset(cmd, '\0', CMD_SIZE);
                     memset(dir, '\0', MAX_SIZE);
 
-                    // printf("String before splitting : %s\n", str);
                     // Split input into shell command + directory
                     ptr = strtok(str, " ");
                     strcpy(cmd, ptr);       // store command
@@ -159,7 +158,6 @@ int main(){
                         if (ptr != NULL){
 
                             strcpy(dir, ptr);       // store directory path
-                            // printf("Dir while extracting : %s\n", dir);
                         }     
                     }
 
@@ -198,23 +196,19 @@ int main(){
                     else if (!strcmp(cmd, "dir")){
 
                         DIR *pDir;
-                        // printf("Dir : %s\n", dir);
 
                         // No argument passed, choose current directory
                         if (strlen(dir) == 0){
 
                             char cwd[MAX_SIZE];
                             getcwd(cwd, sizeof(cwd));
-                            // printf("Dir working directory : %s\n", cwd);
                             strcpy(dir, cwd);
                         }
 
-                        // printf("Dir just before opendir : %s\n", dir);
                         pDir = opendir(dir);
                             
                         if (pDir == NULL){
 
-                            // printf("dir error\n");
                             memset(buf, '\0', BUF_SIZE);
                             strcpy(buf, "####");
                             send(newsockfd, buf, strlen(buf) + 1, 0);
@@ -248,13 +242,11 @@ int main(){
                         if (!chdir(dir)){       // chdir returns 0 when successful
 
                             getcwd(cwd, sizeof(cwd));
-                            // printf("Current working directory : %s\n", cwd);
                             strcpy(str, cwd);
                         }
 
                         else{                   // chdir returns -1 when unsuccessful
 
-                            // printf("cd error\n");
                             memset(buf, '\0', BUF_SIZE);
                             strcpy(buf, "####");
                             send(newsockfd, buf, strlen(buf) + 1, 0);

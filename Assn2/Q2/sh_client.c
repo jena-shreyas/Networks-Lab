@@ -34,8 +34,6 @@ int main(){
         exit(EXIT_FAILURE);
     }
 
-    
-
     // receive login prompt from server
     memset(buf, '\0', BUF_SIZE);
     memset(tmp, '\0', BUF_SIZE);
@@ -91,23 +89,18 @@ int main(){
             fgets(input, MAX_SIZE, stdin);
             input[strlen(input) - 1] = '\0';        // null-terminating the input
 
-            // printf("Input to be sent : %s\n", input);
-
             int i = 0, num_chars = 0;
 
             // clearing buffer
             memset(buf, '\0', BUF_SIZE);
 
-            // printf("Before loop\n");
             // sending input in buffer-sized chunks
             while (input[i] != '\0'){
 
-                // printf("Within loop\n");
                 buf[num_chars++] = input[i++];
 
                 if (i % (BUF_SIZE - 1) == 0){
 
-                    // printf("Buffer to be sent : %s\n", buf);
                     send(sockfd, buf, strlen(buf) + 1, 0);
 
                     memset(buf, '\0', BUF_SIZE);       // clear buffer
@@ -117,7 +110,6 @@ int main(){
             }
 
             // send the last packet
-            // printf("Buffer to be sent : %s\n", buf);
             send(sockfd, buf, strlen(buf) + 1, 0);      
 
             // if cmd = exit, close socket and exit
