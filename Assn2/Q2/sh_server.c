@@ -9,7 +9,7 @@
 #include <dirent.h>
 #define CMD_SIZE 10
 #define BUF_SIZE 50
-#define MAX_SIZE 200
+#define MAX_SIZE 2000
 
 int main(){
 
@@ -116,18 +116,32 @@ int main(){
                     dir = (char *)malloc(MAX_SIZE * sizeof(char));
 
                     // clearing str for storing input
-                    for (int j = 0; j < MAX_SIZE;j++)    str[j]='\0';
+                    memset(str, '\0', MAX_SIZE);
 
                     // Input chunk receiving and assembling
+                    int ip_ctr = 0;
                     while (1){
 
+                        memset(buf, '\0', BUF_SIZE);
                         recv(newsockfd, buf, BUF_SIZE, 0);
-                        strcat(str, buf);
+
+                        if (ip_ctr == 0)
+                            strcpy(str, buf);
+
+                        else {
+                            ip_ctr++;
+                            strcat(str, buf);
+                        }
 
                         if (strlen(buf) < (BUF_SIZE - 1))
                             break;
                     }
 
+                    // Clear contents of cmd and dir
+                    memset(cmd, '\0', CMD_SIZE);
+                    memset(dir, '\0', MAX_SIZE);
+
+                    printf("String before splitting : %s\n", str);
                     // Split input into shell command + directory
                     ptr = strtok(str, " ");
                     strcpy(cmd, ptr);       // store command
@@ -135,18 +149,20 @@ int main(){
                     if (ptr != NULL){
 
                         ptr = strtok(NULL, " ");
-                        if (ptr != NULL)
-                            strcpy(dir, ptr);      // store directory path
-                        
+                        if (ptr != NULL){
+
+                            strcpy(dir, ptr);       // store directory path
+                            printf("Dir while extracting : %s\n", dir);
+                        }     
                     }
 
                     // clearing str for storing result
-                    for (int j = 0; j < MAX_SIZE;j++)    str[j]='\0';
+                    memset(str, '\0', MAX_SIZE);
 
                     // if command = exit
                     if (!strcmp(cmd, "exit")){
 
-                        // printf("Exiting ...\n");
+                        printf("Exiting ...\n");
                         close(newsockfd);
                         exit(0);
                     }
@@ -159,6 +175,7 @@ int main(){
                         // error in running pwd
                         if (getcwd(cwd, sizeof(cwd)) == NULL){
 
+                            memset(buf, '\0', BUF_SIZE);
                             strcpy(buf, "####");
                             send(newsockfd, buf, strlen(buf) + 1, 0);
                             continue;
@@ -174,15 +191,24 @@ int main(){
                     else if (!strcmp(cmd, "dir")){
 
                         DIR *pDir;
+                        printf("Dir : %s\n", dir);
 
                         // No argument passed, choose current directory
-                        if (strlen(dir) == 0)     
-                            strcpy(dir, ".");
+                        if (strlen(dir) == 0){
 
+                            char cwd[MAX_SIZE];
+                            getcwd(cwd, sizeof(cwd));
+                            printf("Dir working directory : %s\n", cwd);
+                            strcpy(dir, cwd);
+                        }
+
+                        printf("Dir just before opendir : %s\n", dir);
                         pDir = opendir(dir);
                             
                         if (pDir == NULL){
 
+                            printf("dir error\n");
+                            memset(buf, '\0', BUF_SIZE);
                             strcpy(buf, "####");
                             send(newsockfd, buf, strlen(buf) + 1, 0);
                             continue;
@@ -192,6 +218,7 @@ int main(){
 
                             struct dirent *dent;
 
+                            int ctr=0;
                             while((dent = readdir(pDir)) != NULL){
 
                                 strcat(str, dent->d_name);
@@ -209,16 +236,19 @@ int main(){
 
                         // No argument passed, choose current directory
                         if (strlen(dir) == 0)     
-                            strcpy(dir, ".");
+                            strcpy(dir, getenv("HOME"));
 
                         if (!chdir(dir)){       // chdir returns 0 when successful
 
                             getcwd(cwd, sizeof(cwd));
+                            printf("Current working directory : %s\n", cwd);
                             strcpy(str, cwd);
                         }
 
                         else{                   // chdir returns -1 when unsuccessful
 
+                            printf("cd error\n");
+                            memset(buf, '\0', BUF_SIZE);
                             strcpy(buf, "####");
                             send(newsockfd, buf, strlen(buf) + 1, 0);
                             continue;
@@ -228,6 +258,7 @@ int main(){
                     // if invalid command
                     else {
 
+                        memset(buf, '\0', BUF_SIZE);
                         strcpy(buf, "$$$$");
                         send(newsockfd, buf, strlen(buf) + 1, 0);
                         continue;
@@ -236,7 +267,7 @@ int main(){
                     int i = 0, num_chars = 0;
 
                     // clearing buffer
-                    for (int j = 0; j<BUF_SIZE; j++)    buf[j] = '\0';
+                    memset(buf, '\0', BUF_SIZE);
 
                     // sending input in buffer-sized chunks
                     while (str[i] != '\0'){
@@ -247,7 +278,7 @@ int main(){
 
                             send(newsockfd, buf, strlen(buf) + 1, 0);
 
-                            for (int j = 0; j < BUF_SIZE; j++)    buf[j] = '\0';      // clear buffer
+                            memset(buf, '\0', BUF_SIZE);      // clear buffer
                             num_chars = 0;
 
                         }
@@ -255,6 +286,8 @@ int main(){
 
                     // send the last packet
                     send(newsockfd, buf, strlen(buf) + 1, 0);
+
+                    memset(str, '\0', MAX_SIZE);
 
                     free(cmd);
                     free(dir);

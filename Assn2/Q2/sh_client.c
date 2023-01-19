@@ -66,6 +66,8 @@ int main(){
             fgets(input, MAX_SIZE, stdin);
             input[strlen(input) - 1] = '\0';        // null-terminating the input
 
+            printf("Input to be sent : %s\n", input);
+
             int i = 0, num_chars = 0;
 
             // clearing buffer
