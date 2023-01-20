@@ -105,7 +105,6 @@ int main(){
 
                     memset(buf, '\0', BUF_SIZE);       // clear buffer
                     num_chars = 0;
-
                 }
             }
 
