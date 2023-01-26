@@ -19,18 +19,18 @@ int main(int args, char* argv[]){
 
     int sockfd;
     int i;
-    struct sockaddr_in lbaddr;
+    struct sockaddr_in lbaddr, cliaddr;
     char buf[BUF_SIZE];
     char tmp[MAX_SIZE];
+
+    lbaddr.sin_family = AF_INET;
+    lbaddr.sin_port = htons(atoi(argv[1]));
+    inet_aton("127.0.0.1", &lbaddr.sin_addr);
 
     if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0){
         perror("Client socket could not be created!");
         exit(0);
     }
-
-    lbaddr.sin_family = AF_INET;
-    lbaddr.sin_port = htons(atoi(argv[1]));
-    inet_aton("127.0.0.1", &lbaddr.sin_addr);
 
     if ((connect(sockfd, (struct sockaddr*)&lbaddr, sizeof(lbaddr))) < 0){
         perror("Client could not connect to LB!");

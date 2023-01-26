@@ -67,8 +67,6 @@ int main(int args, char* argv[]){
             printf("Waiting for %ld seconds for client connection request\n", (TIMEOUT - elapsed));
             int ret = poll(fdset, 1, (TIMEOUT - elapsed)*1000);      // poll() returns 0 if timeout, -1 if error, else returns number of ready fds
 
-            // printf("Poll() returned : %d\n", ret);
-
             // if poll detects a client connection request
             if (ret > 0){    
 
@@ -152,9 +150,7 @@ int main(int args, char* argv[]){
             elapsed = curr_time - start_time;       // update difference between current and start time
         }
 
-        // Check load of servers
-        // close(clisockfd);
-
+        // Once timeout occurs, check load of servers
         // Set up LB socket to act as client for the servers
 
         // Create socket and collect load from server 1
@@ -186,7 +182,7 @@ int main(int args, char* argv[]){
         }
 
         serv1load = atoi(tmp);              // store load of server 1
-        printf("Load received from %s %d\n", inet_ntoa(serv1addr.sin_addr), serv1load);
+        printf("Load received from server 1 (%s) : %d\n", inet_ntoa(serv1addr.sin_addr), serv1load);
         close(servsockfd);
 
 
@@ -219,7 +215,7 @@ int main(int args, char* argv[]){
         }
 
         serv2load = atoi(tmp);              // store load of server 2
-        printf("Load received from %s %d\n", inet_ntoa(serv2addr.sin_addr), serv2load);
+        printf("Load received from server 2 (%s) : %d\n", inet_ntoa(serv2addr.sin_addr), serv2load);
         close(servsockfd);
 
     }
