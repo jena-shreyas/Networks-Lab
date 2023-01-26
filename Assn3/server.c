@@ -71,7 +71,7 @@ int main(int args, char* argv[]){
                 break;
         }
 
-        printf("Request received: %s\n", tmp);
+        // printf("Request received: %s\n", tmp);
 
         // send load to LB
         if (!strcmp(tmp, "Send Load")){

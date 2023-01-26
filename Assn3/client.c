@@ -33,7 +33,7 @@ int main(int args, char* argv[]){
     inet_aton("127.0.0.1", &lbaddr.sin_addr);
 
     if ((connect(sockfd, (struct sockaddr*)&lbaddr, sizeof(lbaddr))) < 0){
-        perror("Client could not connect to load balancer!");
+        perror("Client could not connect to LB!");
         exit(0);
     }
 

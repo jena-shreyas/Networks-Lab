@@ -67,7 +67,7 @@ int main(int args, char* argv[]){
             printf("Waiting for %ld seconds for client connection request\n", (TIMEOUT - elapsed));
             int ret = poll(fdset, 1, (TIMEOUT - elapsed)*1000);      // poll() returns 0 if timeout, -1 if error, else returns number of ready fds
 
-            printf("Poll() returned : %d\n", ret);
+            // printf("Poll() returned : %d\n", ret);
 
             // if poll detects a client connection request
             if (ret > 0){    
@@ -115,10 +115,10 @@ int main(int args, char* argv[]){
                     memset(buf, '\0', BUF_SIZE);
                     strcpy(buf, "Send Time");
 
-                    printf("Sending request to server : %s\n", buf);
+                    // printf("Sending request to server : %s\n", buf);
                     // Send request to server 1 or server 2
                     send(servsockfd, buf, strlen(buf) + 1, 0);
-                    printf("Sent request to server : %s !!\n", buf);
+                    // printf("Sent request to server : %s !!\n", buf);
 
                     memset(buf, '\0', BUF_SIZE);
                     memset(tmp, '\0', MAX_SIZE);
@@ -138,7 +138,7 @@ int main(int args, char* argv[]){
                     close(servsockfd);
 
                     // send time to client
-                    printf("Time from servers : %s\n", tmp);
+                    printf("Time from server : %s\n", tmp);
                     send(newsockfd, tmp, strlen(tmp) + 1, 0);
                     close(newsockfd);
                     exit(0);
