@@ -37,26 +37,26 @@ int main(int args, char* argv[]){
     serv1load = rand() % 100 + 1;       // generate random load for server 1 initially
     serv2load = rand() % 100 + 1;       // generate random load for server 2 initially
 
+    // Set up LB clisockfd to act as server for the clients
+    if ((clisockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0){
+        perror("LB socket could not be created!");
+        exit(EXIT_FAILURE);
+    }
+
+    // Bind clisockfd to local address
+    if ((bind(clisockfd, (struct sockaddr*)&lbaddr, sizeof(lbaddr))) < 0){
+
+        perror("Could not bind local address to client LB socket!");
+        exit(EXIT_FAILURE);
+    }
+
+    listen(clisockfd, 2);               // set limit for concurrent client connections
+
     while (1) {
 
-        // Set up LB clisockfd to act as server for the clients
-        if ((clisockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0){
-            perror("LB socket could not be created!");
-            exit(EXIT_FAILURE);
-        }
-
-        // Bind clisockfd to local address
-        if ((bind(clisockfd, (struct sockaddr*)&lbaddr, sizeof(lbaddr))) < 0){
-
-            perror("Could not bind local address to server socket!");
-            exit(EXIT_FAILURE);
-        }
-
-        listen(clisockfd, 2);              // set limit for concurrent client connections
-
-        struct pollfd fdset[1];         // defines set of sockfds monitored by poll()
-        fdset[0].fd = clisockfd;           // set 1st poll sockfd to our UDP socket
-        fdset[0].events = POLLIN;       // define "normal read without blocking" (POLLIN) as event to be monitored
+        struct pollfd fdset[1];             // defines set of sockfds monitored by poll()
+        fdset[0].fd = clisockfd;            // set 1st poll sockfd to our UDP socket
+        fdset[0].events = POLLIN;           // define "normal read without blocking" (POLLIN) as event to be monitored
 
         time(&start_time);                  // store start time
         curr_time = start_time;             // store current time (initially same as start time)
@@ -153,7 +153,7 @@ int main(int args, char* argv[]){
         }
 
         // Check load of servers
-        close(clisockfd);
+        // close(clisockfd);
 
         // Set up LB socket to act as client for the servers
 
