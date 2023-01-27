@@ -11,12 +11,13 @@
 #define BUF_SIZE 50
 #define MAX_SIZE 100
 #define TIMEOUT 5
+#define NUM_SERVERS 2
 
 int main(int args, char* argv[]){
 
-    int servsockfd, clisockfd, newsockfd;
+    int servsockfd, clisockfd, newsockfd;   // define 1 clisockfd for client connections, 1 servsockfd for server connections
     socklen_t clilen;
-    int serv1load, serv2load;
+    int loads[NUM_SERVERS];                 // array to store load of each server
     time_t start_time, curr_time, elapsed;
     struct sockaddr_in serv1addr, serv2addr, lbaddr, cliaddr;
     char buf[BUF_SIZE];
@@ -34,8 +35,8 @@ int main(int args, char* argv[]){
     serv2addr.sin_port = htons(atoi(argv[3]));
     inet_aton("127.0.0.1", &serv2addr.sin_addr);
 
-    serv1load = rand() % 100 + 1;       // generate random load for server 1 initially
-    serv2load = rand() % 100 + 1;       // generate random load for server 2 initially
+    loads[0] = rand() % 100 + 1;       // generate random load for server 1 initially
+    loads[1] = rand() % 100 + 1;       // generate random load for server 2 initially
 
     // Set up LB clisockfd to act as server for the clients
     if ((clisockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0){
@@ -64,13 +65,13 @@ int main(int args, char* argv[]){
 
         while (elapsed < TIMEOUT){          // while time elapsed is less than timeout
 
-            printf("Waiting for %ld seconds for client connection request\n", (TIMEOUT - elapsed));
-            int ret = poll(fdset, 1, (TIMEOUT - elapsed)*1000);      // poll() returns 0 if timeout, -1 if error, else returns number of ready fds
+            printf("Waiting for %ld seconds for client connection request ...\n", (TIMEOUT - elapsed));
+            int ret = poll(fdset, 1, (TIMEOUT - elapsed)*1000);      // wait on poll() for the remaining time
 
             // if poll detects a client connection request
             if (ret > 0){    
 
-                // if read data without blocking possible, accept connection from client
+                // use single sockfd (clisockfd) to handle all client requests
                 clilen = sizeof(cliaddr);
                 newsockfd = accept(clisockfd, (struct sockaddr*)&cliaddr, &clilen);
 
@@ -87,11 +88,11 @@ int main(int args, char* argv[]){
                         exit(EXIT_FAILURE);
                     }
 
-                    printf("Server 1 load: %d\n", serv1load);
-                    printf("Server 2 load: %d\n", serv2load);
+                    printf("Server 1 load: %d\n", loads[0]);
+                    printf("Server 2 load: %d\n", loads[1]);
 
                     // collect time from server 1 or server 2, whichever has less load
-                    if (serv1load < serv2load){
+                    if (loads[0] < loads[1]){
 
                         if (connect(servsockfd, (struct sockaddr*)&serv1addr, sizeof(serv1addr)) < 0){
                             perror("LB could not be connected to server 1");
@@ -113,10 +114,8 @@ int main(int args, char* argv[]){
                     memset(buf, '\0', BUF_SIZE);
                     strcpy(buf, "Send Time");
 
-                    // printf("Sending request to server : %s\n", buf);
                     // Send request to server 1 or server 2
                     send(servsockfd, buf, strlen(buf) + 1, 0);
-                    // printf("Sent request to server : %s !!\n", buf);
 
                     memset(buf, '\0', BUF_SIZE);
                     memset(tmp, '\0', MAX_SIZE);
@@ -181,8 +180,8 @@ int main(int args, char* argv[]){
                 break;
         }
 
-        serv1load = atoi(tmp);              // store load of server 1
-        printf("Load received from server 1 (%s) : %d\n", inet_ntoa(serv1addr.sin_addr), serv1load);
+        loads[0] = atoi(tmp);              // store load of server 1
+        printf("Load received from server 1 (%s) : %d\n", inet_ntoa(serv1addr.sin_addr), loads[0]);
         close(servsockfd);
 
 
@@ -214,8 +213,8 @@ int main(int args, char* argv[]){
                 break;
         }
 
-        serv2load = atoi(tmp);              // store load of server 2
-        printf("Load received from server 2 (%s) : %d\n", inet_ntoa(serv2addr.sin_addr), serv2load);
+        loads[1] = atoi(tmp);              // store load of server 2
+        printf("Load received from server 2 (%s) : %d\n", inet_ntoa(serv2addr.sin_addr), loads[1]);
         close(servsockfd);
 
     }

@@ -25,9 +25,11 @@ int main(int args, char* argv[]){
     char *buf;
     char tmp[MAX_SIZE];
 
+    // set seed for generating random numbers
     time_t t_rand;
     srand((unsigned)time(&t_rand));
 
+    // create server socket
     if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0){
         perror("Server socket could not be created!");
         exit(0);
@@ -37,15 +39,17 @@ int main(int args, char* argv[]){
     servaddr.sin_addr.s_addr = INADDR_ANY;
     servaddr.sin_port = htons(atoi(argv[1]));
 
+    // bind local address to server socket
     if ((bind(sockfd, (struct sockaddr*)&servaddr, sizeof(servaddr))) < 0){
 
         perror("Could not bind local address to server socket!");
         exit(0);
     }
 
-    listen(sockfd, 5);
+    listen(sockfd, 5);      // set limit for server socket to handle requests
     buf = (char *)malloc(BUF_SIZE * sizeof(char));
 
+    // set up server to handle requests from LB
     while (1) {
 
         lblen = sizeof(lbaddr);
@@ -71,9 +75,7 @@ int main(int args, char* argv[]){
                 break;
         }
 
-        // printf("Request received: %s\n", tmp);
-
-        // send load to LB
+        // send random load to LB
         if (!strcmp(tmp, "Send Load")){
 
             memset(buf, '\0', BUF_SIZE);
@@ -82,7 +84,7 @@ int main(int args, char* argv[]){
             printf("Load sent: %s\n", buf);
         }
 
-        // send time to LB
+        // send local time to LB
         else if (!strcmp(tmp, "Send Time")){
 
             time_t t = time(NULL);

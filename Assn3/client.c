@@ -27,11 +27,13 @@ int main(int args, char* argv[]){
     lbaddr.sin_port = htons(atoi(argv[1]));
     inet_aton("127.0.0.1", &lbaddr.sin_addr);
 
+    // create client socket 
     if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0){
         perror("Client socket could not be created!");
         exit(0);
     }
 
+    // connect client socket to LB
     if ((connect(sockfd, (struct sockaddr*)&lbaddr, sizeof(lbaddr))) < 0){
         perror("Client could not connect to LB!");
         exit(0);
@@ -51,6 +53,7 @@ int main(int args, char* argv[]){
             break;
     }
 
+    // print local time from server
 	printf("Local server time : %s\n", tmp);
 		
 	close(sockfd);
