@@ -133,16 +133,31 @@ int main(){
             time_t t = time(NULL);
             lt = localtime(&t);
 
-            sprintf(buf, "%d, %d %d %d %d:%d:%d GMT" \
+            char hour[3], min[3], sec[3];
+            if (lt->tm_hour < 10)
+                sprintf(hour, "0%d", lt->tm_hour);
+            else
+                sprintf(hour, "%d", lt->tm_hour);
+
+            if (lt->tm_min < 10)
+                sprintf(min, "0%d", lt->tm_min);
+            else
+                sprintf(min, "%d", lt->tm_min);
+
+            if (lt->tm_sec < 10)
+                sprintf(sec, "0%d", lt->tm_sec);
+            else
+                sprintf(sec, "%d", lt->tm_sec);
+
+            sprintf(buf, "%s, %d %s %d %s:%s:%s GMT" \
                 , days_of_week[lt->tm_wday]
                 , lt->tm_mday
                 , months[lt->tm_mon]
                 , (lt->tm_year + 1900)
-                , lt->tm_hour
-                , lt->tm_min
-                , lt->tm_sec);
+                , hour
+                , min
+                , sec);
 
-            buf[strlen(buf) - 1] = '\0';
             strcat(request, "\nDate: ");
             strcat(request, buf);
 
