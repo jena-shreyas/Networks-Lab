@@ -4,6 +4,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <netdb.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <time.h>
@@ -12,21 +13,40 @@
 #define URL_SIZE 300
 #define MAX_SIZE 2048
 
-typedef struct request_
+typedef struct message_
 {
     char cmd[CMD_SIZE];
     char url[URL_SIZE];
     char host[URL_SIZE];
+    char ip[URL_SIZE];
     unsigned int port;
-} request;
+} Message;
 
-const char *days_of_week[] = {"Sun" ,"Mon" ,"Tue" ,"Wed" ,"Thu" ,"Fri" ,"Sat"};
-const char *months[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+// convert hostname to IP address
+char *convert_hostname_to_ip(char *host)
+{
+    struct hostent *hent;
+    struct in_addr **addr_list;
+    int i;
+
+    if ((hent = gethostbyname(host)) == NULL)
+    {
+        herror("gethostbyname");
+        return NULL;
+    }
+
+    addr_list = (struct in_addr **)hent->h_addr_list;
+
+    for (i = 0; addr_list[i] != NULL; i++)
+        return inet_ntoa(*addr_list[i]);
+
+    return NULL;
+}
 
 // parse the input string and return a request struct
-request parse_request(char *input)
+Message parse_request(char *input)
 {
-    request req;
+    Message req;
 
     char *token = strtok(input, " ");
     strcpy(req.cmd, token);
@@ -34,7 +54,6 @@ request parse_request(char *input)
     
     char *protocol = strtok(token, ":");
     char *path_port = strtok(NULL, "");
-    printf("%s\n", path_port);
 
     if (strchr(path_port, ':') != NULL)
     {
@@ -52,6 +71,12 @@ request parse_request(char *input)
     }
 
     req.host[idx - 2] = '\0';
+
+    if (!inet_aton(req.host, NULL))
+        strcpy(req.ip, convert_hostname_to_ip(req.host));
+    else
+        strcpy(req.ip, req.host);
+
     strcpy(req.url, path_port + idx);
 
     return req;
@@ -64,6 +89,7 @@ int main(){
     struct sockaddr_in servaddr;
     char *buf;
     char input[URL_SIZE];
+    char request[MAX_SIZE];
     struct tm* lt;
 
     const char *prompt = "MyBrowser> ";
@@ -98,14 +124,12 @@ int main(){
         if (!strcmp(input, "QUIT"))
             break;
 
-        request req = parse_request(input);
+        Message req = parse_request(input);
         printf("Command : %s\n", req.cmd);
         printf("URL : %s\n", req.url);
         printf("Host : %s\n", req.host);
         printf("Port : %d\n", req.port);
-
-        // char ip[100];
-        // hostname_to_ip(req.ip, ip);
+        printf("IP : %s\n", req.ip);
 
         // servaddr.sin_family = AF_INET;
         // servaddr.sin_port = htons(req.port);
@@ -118,67 +142,80 @@ int main(){
         //     exit(0);
         // }
 
-        // printf("Connected to server %s : %d\n", req.ip, req.port);
+        // // printf("Connected to server %s : %d\n", req.ip, req.port);
 
-        char request[MAX_SIZE];
+        sprintf(request, "%s %s HTTP/1.1", req.cmd, req.url);
+        strcat(request, "\nHost: ");
+        strcat(request, req.host);
+        strcat(request, "\nConnection: close");
+
+        time_t t = time(NULL);
+        lt = localtime(&t);
+
+        strftime(buf, BUF_SIZE, "%a, %d %b %Y %H:%M:%S %Z", lt);
+
+        strcat(request, "\nDate: ");
+        strcat(request, buf);
+
+        char *extension = strrchr(req.url, '.');
+        char accept_type[BUF_SIZE];
+
+        if (extension != NULL)
+        {
+            if (!strcmp(extension, ".html"))
+                strcpy(accept_type, "text/html");
+            else if (!strcmp(extension, ".jpg"))
+                strcpy(accept_type, "image/jpeg");
+            else if (!strcmp(extension, ".pdf"))
+                strcpy(accept_type, "application/pdf");
+            else
+                strcpy(accept_type, "text/*");
+        }
 
         if (!strcmp(req.cmd, "GET"))
         {
-            sprintf(request, "GET %s HTTP/1.1", req.url);
-            strcat(request, "\nHost: ");
-            strcat(request, req.host);
-            strcat(request, "\nConnection: close");
+            strcat(request, "\nAccept: ");
+            strcat(request, accept_type);
+            strcat(request, "\nAccept-Language: en-US");
 
-            /// ################### CHANGE DATE FORMAT A BIT ###################
-            time_t t = time(NULL);
-            lt = localtime(&t);
-
-            char hour[3], min[3], sec[3];
-            if (lt->tm_hour < 10)
-                sprintf(hour, "0%d", lt->tm_hour);
-            else
-                sprintf(hour, "%d", lt->tm_hour);
-
-            if (lt->tm_min < 10)
-                sprintf(min, "0%d", lt->tm_min);
-            else
-                sprintf(min, "%d", lt->tm_min);
-
-            if (lt->tm_sec < 10)
-                sprintf(sec, "0%d", lt->tm_sec);
-            else
-                sprintf(sec, "%d", lt->tm_sec);
-
-            sprintf(buf, "%s, %d %s %d %s:%s:%s GMT" \
-                , days_of_week[lt->tm_wday]
-                , lt->tm_mday
-                , months[lt->tm_mon]
-                , (lt->tm_year + 1900)
-                , hour
-                , min
-                , sec);
-
-            strcat(request, "\nDate: ");
+            lt->tm_mday -= 2;
+            strftime(buf, BUF_SIZE, "%a, %d %b %Y %H:%M:%S %Z", lt);
+            strcat(request, "\nIf-Modified-Since: ");
             strcat(request, buf);
 
-            strcat(request, "\nAccept: ");
-            char *extension = strrchr(req.url, '.');
-            if (extension != NULL)
-            {
-                if (!strcmp(extension, ".html"))
-                    strcat(request, "text/html");
-                else if (!strcmp(extension, ".jpg"))
-                    strcat(request, "image/jpeg");
-                else if (!strcmp(extension, ".pdf"))
-                    strcat(request, "application/pdf");
-                else
-                    strcat(request, "text/*");
-            }
-
-            strcat(request, "\nAccept-Language: en-US,en;q=0.5");
-            // strcat(request, "\nIf-Modified-Since: ");
             printf("Request : \n\n%s\n", request);
         }
+
+        else if (!strcmp(req.cmd, "PUT"))
+        {
+            strcat(request, "\nContent-Language: en-US");
+            strcat(request, "\nContent-Length: ");
+            FILE *fp = fopen((req.url + 1), "r");
+            fseek(fp, 0, SEEK_END);
+            int size = ftell(fp);
+            fseek(fp, 0, SEEK_SET);
+
+            char size_str[BUF_SIZE];
+            sprintf(size_str, "%d", size);
+            strcat(request, size_str);
+
+            strcat(request, "\nContent-Type: ");
+            strcat(request, accept_type);
+
+            strcat(request, "\n\n");
+
+            char *file_content = (char *)malloc(size * sizeof(char));
+            fread(file_content, sizeof(char), size, fp);
+            strcat(request, file_content);
+            fclose(fp);
+
+            printf("Request : \n\n%s\n", request);
+        }
+
+        // //  send input 
+        // while (1){
+
+        // }
 
     }
     return 0;
