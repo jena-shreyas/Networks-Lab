@@ -82,6 +82,37 @@ Message parse_request(char *input)
     return req;
 }
 
+// Function to parse the HTTP response (FIX THIS!!!!)
+void parse_http_response(char *response) 
+{
+  char *token;
+  char *status_line;
+  char *header_line;
+
+  // Get the first line (status line)
+  status_line = strtok(response, "\n");
+
+  // Get the HTTP status code
+  // ************* FIX THIS *************
+  token = strtok(status_line, " ");
+  printf("%s\n", token);
+  int status_code = atoi(token + strlen("HTTP/1.1"));
+  printf("HTTP status code: %d\n", status_code);
+
+
+  // Get the rest of the headers
+  while ((header_line = strtok(NULL, "\n")) != NULL) 
+  {
+    // Extract the header name and value
+    token = strtok(header_line, ": ");
+    char *header_name = token;
+    char *header_value = strtok(NULL, "\0");
+    printf("%s: %s\n", header_name, header_value);
+  }
+
+  // ************* FIX THIS *************
+}
+
 int main(){
 
     int sockfd;
@@ -90,6 +121,7 @@ int main(){
     char *buf;
     char input[URL_SIZE];
     char request[MAX_SIZE];
+    char response[MAX_SIZE];
     struct tm* lt;
 
     const char *prompt = "MyBrowser> ";
@@ -130,19 +162,6 @@ int main(){
         printf("Host : %s\n", req.host);
         printf("Port : %d\n", req.port);
         printf("IP : %s\n", req.ip);
-
-        // servaddr.sin_family = AF_INET;
-        // servaddr.sin_port = htons(req.port);
-        // inet_aton(req.ip, &servaddr.sin_addr);
-
-        // if ((connect(sockfd, (struct sockaddr*)&servaddr, sizeof(servaddr))) < 0)
-        // {
-        //     // printf("%d\n", errno);
-        //     perror("Client could not connect to server!");
-        //     exit(0);
-        // }
-
-        // // printf("Connected to server %s : %d\n", req.ip, req.port);
 
         sprintf(request, "%s %s HTTP/1.1", req.cmd, req.url);
         strcat(request, "\nHost: ");
@@ -212,11 +231,61 @@ int main(){
             printf("Request : \n\n%s\n", request);
         }
 
-        // //  send input 
-        // while (1){
+        // // connect to server
+        // servaddr.sin_family = AF_INET;
+        // servaddr.sin_port = htons(req.port);
+        // inet_aton(req.ip, &servaddr.sin_addr);
 
+        // if ((connect(sockfd, (struct sockaddr*)&servaddr, sizeof(servaddr))) < 0)
+        // {
+        //     // printf("%d\n", errno);
+        //     perror("Client could not connect to server!");
+        //     exit(0);
         // }
 
+        // // printf("Connected to server %s : %d\n", req.ip, req.port);
+
+        // char *request_ptr = request;
+        // //  send input in chunks
+        // while (1){
+
+        //     memset(buf, '\0', BUF_SIZE);
+        //     strncpy(buf, request_ptr, BUF_SIZE);
+        //     request_ptr = request_ptr + BUF_SIZE;
+
+        //     send(sockfd, buf, BUF_SIZE, 0);
+
+        //     if (strlen(buf) < BUF_SIZE)
+        //         break;
+        // }
+
+        memset(response, '\0', MAX_SIZE);
+
+        // ***********SAMPLE TESTING OF PARSE_RESPONSE***********
+        strcpy(response, "HTTP/1.1 200 OK\n");
+        strcat(response, "Content-Type: text/html\n");
+        strcat(response, "Content-Length: 42\n");
+        strcat(response, "Connection: close\n");
+        strcat(response, "\n");
+        // receive response from server
+
+        // while (1){
+
+        //     memset(buf, '\0', BUF_SIZE);
+        //     recv(sockfd, buf, BUF_SIZE, 0);
+        //     strcat(response, buf);
+
+        //     if (strlen(buf) < BUF_SIZE)
+        //         break;
+        // }
+
+        // printf("Response : \n\n%s\n\n", response);
+
+        // parse response
+        char *response_ptr = response;
+        memset(buf, '\0', BUF_SIZE);
+
+        parse_http_response(response_ptr);
     }
     return 0;
 }
