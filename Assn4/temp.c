@@ -16,6 +16,7 @@ int main(int argc, char *argv[])
     char *port = "80";
     char *protocol = "http";
     char *path = "/";
+    char *temp = (char *)malloc(strlen(hostname) + 1);
 
     // Find hostname and path in the URL
     char *p = strstr(hostname, "://");
@@ -23,18 +24,27 @@ int main(int argc, char *argv[])
         protocol = strtok(hostname, "://");
         hostname = p + 3;
     }
+    printf("Hostname: %s\n", hostname);
+
     p = strchr(hostname, '/');
     if (p != NULL) {
         path = p;
         *p = '\0';
     }
+    // printf("Path: %s\n", path);
+    // printf("Hostname: %s\n", hostname);
     p = strchr(hostname, ':');
     if (p != NULL) {
         *p = '\0';
         port = p + 1;
+        // temp = p + 1;
     }
+    // printf("Port no: %s\n", temp);
 
-    // Get the IP address of the host
+    printf("hostname: %s\n", hostname);
+    printf("port: %s\n", port);
+
+    //Get the IP address of the host
     struct addrinfo hints, *res;
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_INET;
@@ -58,7 +68,7 @@ int main(int argc, char *argv[])
     printf("IP address: %s\n", ip_address);
     printf("Port number: %d\n", port_number);
 
-    // Clean up
+    //Clean up
     freeaddrinfo(res);
     return 0;
 }
