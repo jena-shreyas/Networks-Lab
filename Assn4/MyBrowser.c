@@ -8,7 +8,7 @@
 #include <arpa/inet.h>
 #include <time.h>
 #define CMD_SIZE 10
-#define BUF_SIZE 50
+#define BUF_SIZE 100
 #define URL_SIZE 300
 #define MAX_SIZE 2048
 
@@ -19,6 +19,9 @@ typedef struct request_
     char host[URL_SIZE];
     unsigned int port;
 } request;
+
+const char *days_of_week[] = {"Sun" ,"Mon" ,"Tue" ,"Wed" ,"Thu" ,"Fri" ,"Sat"};
+const char *months[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
 
 // parse the input string and return a request struct
 request parse_request(char *input)
@@ -61,7 +64,7 @@ int main(){
     struct sockaddr_in servaddr;
     char *buf;
     char input[URL_SIZE];
-    struct tm* local_time;
+    struct tm* lt;
 
     const char *prompt = "MyBrowser> ";
     buf = (char *)malloc(BUF_SIZE * sizeof(char));
@@ -128,8 +131,17 @@ int main(){
 
             /// ################### CHANGE DATE FORMAT A BIT ###################
             time_t t = time(NULL);
-            local_time = localtime(&t);
-            buf = asctime(local_time);
+            lt = localtime(&t);
+
+            sprintf(buf, "%d, %d %d %d %d:%d:%d GMT" \
+                , days_of_week[lt->tm_wday]
+                , lt->tm_mday
+                , months[lt->tm_mon]
+                , (lt->tm_year + 1900)
+                , lt->tm_hour
+                , lt->tm_min
+                , lt->tm_sec);
+
             buf[strlen(buf) - 1] = '\0';
             strcat(request, "\nDate: ");
             strcat(request, buf);
