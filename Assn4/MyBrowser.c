@@ -20,6 +20,7 @@ typedef struct message_
     char host[URL_SIZE];
     char ip[URL_SIZE];
     unsigned int port;
+    char filename[URL_SIZE];    
 } Message;
 
 // convert hostname to IP address
@@ -51,10 +52,8 @@ Message parse_request(char *input)
     char *token = strtok(input, " ");
     strcpy(req.cmd, token);
     char *url = strtok(NULL, " ");
-    // printf("%s\n", url);
-    strcpy(req.url, url);
-    printf("URL in parse request : %s\n", req.url);
-    
+    strcpy(req.url, url);    
+    strcpy(req.filename, strrchr(url, '/') + sizeof(char));
     char *protocol = strtok(url, ":");
     char *path_port = strtok(NULL, "");
 
@@ -80,7 +79,6 @@ Message parse_request(char *input)
     else
         strcpy(req.ip, req.host);
 
-    // strcpy(req.url, path_port + idx);
     return req;
 }
 
@@ -165,20 +163,20 @@ int main(){
         printf("Host : %s\n", req.host);
         printf("Port : %d\n", req.port);
         printf("IP : %s\n", req.ip);
+        printf("File : %s\n", req.filename);
 
-        sprintf(request, "%s %s HTTP/1.1\r\n", req.cmd, req.url);
-        strcat(request, "Host: ");
+        sprintf(request, "%s %s HTTP/1.1", req.cmd, req.url);
+        strcat(request, "\r\nHost: ");
         strcat(request, req.host);
-        // strcat(request, "\nUser-Agent: Mozilla/5.0");
-        strcat(request, "\r\nConnection: close\r\n");
+        strcat(request, "\r\nConnection: close");
 
-        // time_t t = time(NULL);
-        // lt = localtime(&t);
+        time_t t = time(NULL);
+        lt = localtime(&t);
 
-        // strftime(buf, BUF_SIZE, "%a, %d %b %Y %H:%M:%S %Z", lt);
+        strftime(buf, BUF_SIZE, "%a, %d %b %Y %H:%M:%S %Z", lt);
 
-        // strcat(request, "\nDate: ");
-        // strcat(request, buf);
+        strcat(request, "\r\nDate: ");
+        strcat(request, buf);
 
         char *extension = strrchr(req.url, '.');
         char accept_type[BUF_SIZE];
@@ -195,13 +193,11 @@ int main(){
                 strcpy(accept_type, "text/*");
         }
 
-        // strcpy(accept_type, "text/html");
-
         if (!strcmp(req.cmd, "GET"))
         {
-            strcat(request, "Accept: ");
+            strcat(request, "\r\nAccept: ");
             strcat(request, accept_type);
-            // strcat(request, "\nAccept-Language: en-US");
+            strcat(request, "\r\nAccept-Language: en-US");
 
             // lt->tm_mday -= 2;
             // strftime(buf, BUF_SIZE, "%a, %d %b %Y %H:%M:%S %Z", lt);
@@ -254,8 +250,6 @@ int main(){
             exit(0);
         }
 
-        // printf("Connected to server %s : %d\n", req.ip, req.port);
-
         char *request_ptr = request;
         //  send input in chunks
         while (1){
@@ -270,24 +264,30 @@ int main(){
                 break;
         }
 
-        memset(response, '\0', MAX_SIZE);
+        FILE* fp = fopen(req.filename, "w");
+        int inside_body = 0;
+        char *body_beg_ptr;
 
-        // ***********SAMPLE TESTING OF PARSE_RESPONSE***********
-        // strcpy(response, "HTTP/1.1 200 OK\n");
-        // strcat(response, "Content-Type: text/html\n");
-        // strcat(response, "Content-Length: 42\n");
-        // strcat(response, "Connection: close\n");
-        // strcat(response, "\n");
+        // memset(response, '\0', MAX_SIZE);
 
         // receive response from server
-
         printf("\nResponse : \n\n");
         while (1){
 
             memset(buf, '\0', BUF_SIZE);
             recv(sockfd, buf, BUF_SIZE, 0);
             printf("%s", buf);
-            // strcat(response, buf);
+
+            if ((body_beg_ptr = strstr(buf, "\r\n\r\n")) != NULL)
+            {
+                inside_body = 1;
+                body_beg_ptr += 4;
+                fprintf(fp, "%s", body_beg_ptr);
+                continue;
+            }
+
+            if (inside_body)
+                fprintf(fp, "%s", buf);
 
             if (strlen(buf) < BUF_SIZE)
                 break;
@@ -299,6 +299,7 @@ int main(){
 
         // parse_http_response(response_ptr);
         close(sockfd);
+        fclose(fp);
     }
     return 0;
 }
