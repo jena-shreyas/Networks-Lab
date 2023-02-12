@@ -50,9 +50,12 @@ Message parse_request(char *input)
 
     char *token = strtok(input, " ");
     strcpy(req.cmd, token);
-    token = strtok(NULL, " ");
+    char *url = strtok(NULL, " ");
+    // printf("%s\n", url);
+    strcpy(req.url, url);
+    printf("URL in parse request : %s\n", req.url);
     
-    char *protocol = strtok(token, ":");
+    char *protocol = strtok(url, ":");
     char *path_port = strtok(NULL, "");
 
     if (strchr(path_port, ':') != NULL)
@@ -77,8 +80,7 @@ Message parse_request(char *input)
     else
         strcpy(req.ip, req.host);
 
-    strcpy(req.url, path_port + idx);
-
+    // strcpy(req.url, path_port + idx);
     return req;
 }
 
@@ -116,9 +118,7 @@ void parse_http_response(char *response)
 
         printf("%s: %s\n", header_name, header_value);
     }
-
     free(code);
-  // ************* FIX THIS *************
 }
 
 int main(){
@@ -166,18 +166,19 @@ int main(){
         printf("Port : %d\n", req.port);
         printf("IP : %s\n", req.ip);
 
-        sprintf(request, "%s %s HTTP/1.1\r", req.cmd, req.url);
-        strcat(request, "\nHost: ");
+        sprintf(request, "%s %s HTTP/1.1\r\n", req.cmd, req.url);
+        strcat(request, "Host: ");
         strcat(request, req.host);
-        strcat(request, "\nConnection: close");
+        // strcat(request, "\nUser-Agent: Mozilla/5.0");
+        strcat(request, "\r\nConnection: close\r\n");
 
-        time_t t = time(NULL);
-        lt = localtime(&t);
+        // time_t t = time(NULL);
+        // lt = localtime(&t);
 
-        strftime(buf, BUF_SIZE, "%a, %d %b %Y %H:%M:%S %Z", lt);
+        // strftime(buf, BUF_SIZE, "%a, %d %b %Y %H:%M:%S %Z", lt);
 
-        strcat(request, "\nDate: ");
-        strcat(request, buf);
+        // strcat(request, "\nDate: ");
+        // strcat(request, buf);
 
         char *extension = strrchr(req.url, '.');
         char accept_type[BUF_SIZE];
@@ -194,17 +195,19 @@ int main(){
                 strcpy(accept_type, "text/*");
         }
 
+        // strcpy(accept_type, "text/html");
+
         if (!strcmp(req.cmd, "GET"))
         {
-            strcat(request, "\nAccept: ");
+            strcat(request, "Accept: ");
             strcat(request, accept_type);
-            strcat(request, "\nAccept-Language: en-US");
+            // strcat(request, "\nAccept-Language: en-US");
 
-            lt->tm_mday -= 2;
-            strftime(buf, BUF_SIZE, "%a, %d %b %Y %H:%M:%S %Z", lt);
-            strcat(request, "\nIf-Modified-Since: ");
-            strcat(request, buf);
-            strcat(request, "\r\n\n");
+            // lt->tm_mday -= 2;
+            // strftime(buf, BUF_SIZE, "%a, %d %b %Y %H:%M:%S %Z", lt);
+            // strcat(request, "\nIf-Modified-Since: ");
+            // strcat(request, buf);
+            strcat(request, "\r\n\r\n");
 
             printf("Request : \n\n%s", request);
         }
@@ -225,7 +228,7 @@ int main(){
             strcat(request, "\nContent-Type: ");
             strcat(request, accept_type);
 
-            strcat(request, "\r\n\n");
+            strcat(request, "\r\n\r\n");
 
             char *file_content = (char *)malloc(size * sizeof(char));
             fread(file_content, sizeof(char), size, fp);
