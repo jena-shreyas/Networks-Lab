@@ -85,31 +85,39 @@ Message parse_request(char *input)
 // Function to parse the HTTP response (FIX THIS!!!!)
 void parse_http_response(char *response) 
 {
-  char *token;
-  char *status_line;
-  char *header_line;
+    char *token, *line;
+    char *status_line;
+    char *header_line;
+    char *header_name, *header_value;
 
-  // Get the first line (status line)
-  status_line = strtok(response, "\n");
+    // Get the first line (status line)
+    status_line = strtok(response, "\n");
+    printf("%s\n", status_line);
 
-  // Get the HTTP status code
-  // ************* FIX THIS *************
-  token = strtok(status_line, " ");
-  printf("%s\n", token);
-  int status_code = atoi(token + strlen("HTTP/1.1"));
-  printf("HTTP status code: %d\n", status_code);
+    char *start_space = strchr(status_line, ' ');
+    char *end_space = strrchr(status_line, ' ');
+    char *code = (char *)malloc((end_space - start_space) * sizeof(char));
+    strncpy(code, start_space, end_space - start_space);
+    code[end_space - start_space] = '\0';
+    int status_code = atoi(code);
+    printf("Status code: %d\n", status_code);
 
+    header_name = (char *)malloc(100 * sizeof(char));   // Initialize header_name with some memory
 
-  // Get the rest of the headers
-  while ((header_line = strtok(NULL, "\n")) != NULL) 
-  {
-    // Extract the header name and value
-    token = strtok(header_line, ": ");
-    char *header_name = token;
-    char *header_value = strtok(NULL, "\0");
-    printf("%s: %s\n", header_name, header_value);
-  }
+    // Get the rest of the headers
+    while ((header_line = strtok(NULL, "\n")) != NULL) 
+    {
+        // Extract the header name and value
+        char *delim = strchr(header_line, ':');
+        header_value = delim + 2;
+        header_name = realloc(header_name, (delim - header_line) * sizeof(char));
+        strncpy(header_name, header_line, delim - header_line);
+        header_name[delim - header_line] = '\0';
 
+        printf("%s: %s\n", header_name, header_value);
+    }
+
+    free(code);
   // ************* FIX THIS *************
 }
 
@@ -231,7 +239,7 @@ int main(){
             printf("Request : \n\n%s\n", request);
         }
 
-        // // connect to server
+        // connect to server
         // servaddr.sin_family = AF_INET;
         // servaddr.sin_port = htons(req.port);
         // inet_aton(req.ip, &servaddr.sin_addr);
@@ -243,7 +251,7 @@ int main(){
         //     exit(0);
         // }
 
-        // // printf("Connected to server %s : %d\n", req.ip, req.port);
+        // printf("Connected to server %s : %d\n", req.ip, req.port);
 
         // char *request_ptr = request;
         // //  send input in chunks
@@ -267,25 +275,27 @@ int main(){
         strcat(response, "Content-Length: 42\n");
         strcat(response, "Connection: close\n");
         strcat(response, "\n");
+
         // receive response from server
 
+        // printf("Response : \n\n");
         // while (1){
 
         //     memset(buf, '\0', BUF_SIZE);
         //     recv(sockfd, buf, BUF_SIZE, 0);
+        //     printf("%s", buf);
         //     strcat(response, buf);
 
         //     if (strlen(buf) < BUF_SIZE)
         //         break;
         // }
 
-        // printf("Response : \n\n%s\n\n", response);
-
-        // parse response
+        // // parse response
         char *response_ptr = response;
-        memset(buf, '\0', BUF_SIZE);
+        // memset(buf, '\0', BUF_SIZE);
 
         parse_http_response(response_ptr);
+        // close(sockfd);
     }
     return 0;
 }
