@@ -274,7 +274,7 @@ int main(){
 
             memset(buf, '\0', BUF_SIZE);
             recv(sockfd, buf, BUF_SIZE, 0);
-            // printf("%s", buf);
+            printf("%s", buf);
 
             if ((body_beg_ptr = strstr(buf, "\r\n\r\n")) != NULL && inside_body == 0)
             {
@@ -291,7 +291,7 @@ int main(){
 
             // break loop on detecting EOF
             char *eof_ptr = strstr(buf, "%%EOF");
-            if (strchr(buf, '\0') != NULL && eof_ptr != NULL)
+            if (eof_ptr != NULL)
                 break;
         }
 
