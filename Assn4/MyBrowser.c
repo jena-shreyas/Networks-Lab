@@ -241,8 +241,10 @@ int main(){
 
         // connect to server
         servaddr.sin_family = AF_INET;
-        servaddr.sin_port = htons(req.port);
-        inet_aton(req.ip, &servaddr.sin_addr);
+        // servaddr.sin_port = htons(req.port);
+        // inet_aton(req.ip, &servaddr.sin_addr);
+        servaddr.sin_port = htons(8080);
+        inet_aton("127.0.0.1", &servaddr.sin_addr);
 
         if ((connect(sockfd, (struct sockaddr*)&servaddr, sizeof(servaddr))) < 0)
         {
@@ -278,8 +280,11 @@ int main(){
 
         while (1){
 
-            if ((buf_recv = recv(sockfd, buf, BUF_SIZE, 0)) == 0)
-                break;
+            if ((buf_recv = recv(sockfd, buf, BUF_SIZE, 0)) == 0){
+                perror("Server closed connection!");
+                // break;
+                exit(0);
+            }
             while (response_size <= bytes_recv + buf_recv)
             {
                 response_size *= 2;

@@ -146,11 +146,17 @@ int main(){
             printf("Received request from the client: %s\n", request);
 
             // parsing the http request to get the command, url, host, port
-            
-
+            printf("Closing the connection with the client.\n");
+            close(newsockfd);
+            exit(0);
             
         }
+
+        close(newsockfd);
     
     }
+
+    close(sockfd);
+    return 0;
 
 }
