@@ -196,7 +196,7 @@ int main()
     char *response;
     struct tm *lt;
 
-    const char *prompt = "MyBrowser> ";
+    const char *prompt = "\nMyBrowser> ";
     buf = (char *)malloc(BUF_SIZE * sizeof(char));
 
     while (1)
@@ -275,6 +275,10 @@ int main()
             // strcat(request, buf);
 
             // add newline at end of request header
+            lt->tm_min -= 1;
+            strftime(buf, BUF_SIZE, "%a, %d %b %Y %H:%M:%S %Z", lt);
+            strcat(request, "\nIf-Modified-Since: ");
+            strcat(request, buf);
             strcat(request, "\r\n\r\n");
 
             printf("Request : \n\n%s", request);
