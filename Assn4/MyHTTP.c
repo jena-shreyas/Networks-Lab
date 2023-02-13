@@ -12,7 +12,7 @@
 #include <sys/stat.h>
 
 #define CMD_SIZE 10
-#define MAX_BUF_SIZE 100
+#define MAX_BUF_SIZE 2048
 #define URL_SIZE 600
 #define MAX_SIZE 2048
 
@@ -72,6 +72,68 @@ char *convert_hostname_to_ip(char *host)
     return NULL;
 }
 
+// int recv_request(int newsockfd, char *request){
+
+//     // char *request = (char *)malloc(MAX_BUF_SIZE*sizeof(char));
+//     char buffer[MAX_BUF_SIZE];
+//     int bytes_recv = 0, total_bytes_recv = 0, curr_req_len = MAX_BUF_SIZE;
+//     long long int i = 0;
+//     memset(request, 0, MAX_BUF_SIZE);
+
+//     // receive request from the client
+//     while(1){
+
+//         // memset(buffer, 0, MAX_BUF_SIZE);
+//         bytes_recv = recv(newsockfd, buffer, MAX_BUF_SIZE, 0);
+
+//         if(bytes_recv < 0){
+//             perror("Unable to receive data from the server: recv() call failed !\n");
+//             return -1;
+//             // exit(0);
+//         }
+
+//         if (bytes_recv == 0){
+//             // printf("The server S1 has closed the connection.\n");
+//             // close(newsockfd);
+//             // return -1;
+//             break;
+//             // exit(0)
+//         }
+
+//         total_bytes_recv += bytes_recv;
+
+//         for(int j = 0; j < bytes_recv; j++){
+//             request[i++] = buffer[j];
+//             // if (buffer[j] == '\0')
+//             //     break;
+
+//             if (i == curr_req_len){
+//                 curr_req_len *= 2;
+//                 request = (char *)realloc(request, curr_req_len*sizeof(char));
+//             }
+//         }
+
+//         // while (curr_req_len <= total_bytes_recv + bytes_recv){
+//         //     curr_req_len *= 2;
+//         //     request = (char *)realloc(request, curr_req_len*sizeof(char));
+//         // }
+
+
+//         // for(int j = 0; j < bytes_recv; j++){
+//         //     request[total_bytes_recv + j] = buffer[j];
+
+
+//         //     // if (i == curr_req_len){
+//         //     //     curr_req_len *= 2;
+//         //     //     request = (char *)realloc(request, curr_req_len*sizeof(char));
+//         //     // }
+//         // }
+//         // total_bytes_recv += bytes_recv;
+
+//     }
+//     return 0;
+// }
+
 int recv_request(int newsockfd, char *request){
 
     // char *request = (char *)malloc(MAX_BUF_SIZE*sizeof(char));
@@ -91,18 +153,19 @@ int recv_request(int newsockfd, char *request){
         }
 
         if (bytes_recv == 0){
-            printf("The server S1 has closed the connection.\n");
-            close(newsockfd);
-            return -1;
+            // printf("The server S1 has closed the connection.\n");
+            // close(newsockfd);
+            // return -1;
             // exit(0)
+            break;
         }
 
         total_bytes_recv += bytes_recv;
 
         for(int j = 0; j < bytes_recv; j++){
             request[i++] = buffer[j];
-            if (buffer[j] == '\0')
-                break;
+            // if (buffer[j] == '\0')
+            //     break;
 
             if (i == curr_req_len){
                 curr_req_len += MAX_BUF_SIZE;
@@ -111,6 +174,7 @@ int recv_request(int newsockfd, char *request){
         }
 
         if(request[i-1] == '\0')
+            // continue;
             break;
     }
     return 0;
@@ -223,7 +287,26 @@ int parse_request(char *request, Message *msg){
             // printf("If modified since: %s\n", msg->if_mod_since);
         }
 
-        
+        else if ( strstr(tokens[j], "Content-Language") != NULL){
+            char *token = strtok(tokens[j], " ");
+            token = strtok(NULL, " ");
+            strcpy(msg->content_lang, token);
+            printf("Content language: %s\n", msg->content_lang);
+        }
+
+        else if ( strstr(tokens[j], "Content-Length") != NULL){
+            char *token = strtok(tokens[j], " ");
+            token = strtok(NULL, " ");
+            msg->content_len = atoi(token);
+            printf("Content length: %ld\n", msg->content_len);
+        }
+
+        else if ( strstr(tokens[j], "Content-Type") != NULL){
+            char *token = strtok(tokens[j], " ");
+            token = strtok(NULL, " ");
+            strcpy(msg->content_type, token);
+            printf("Content type: %s\n", msg->content_type);
+        }
     }
 
     if (cmd_flag  == 1 && host_flag == 1 && conn_type_flag == 1 && accept_type_flag == 1){
@@ -333,6 +416,7 @@ int main(){
             // receive the request from the client in chunks 
             char *request = (char *)malloc(MAX_BUF_SIZE*sizeof(char));
             int ret = recv_request(newsockfd, request);
+            printf("Received complete.\n");
 
             if (ret == -1){
                 close(newsockfd);
@@ -348,6 +432,7 @@ int main(){
             int curr_resp_size = MAX_SIZE;
 
             int res = parse_request(request, msg);
+            
             int offset = 0, file_len = 0;
             if (res == -1){
             
