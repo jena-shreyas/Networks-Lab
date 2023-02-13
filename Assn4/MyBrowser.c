@@ -271,10 +271,10 @@ int main(){
         int bytes_recv = 0;
         int buf_recv;
 
-        memset(buf, '\0', BUF_SIZE);
-        buf_recv = recv(sockfd, buf, BUF_SIZE, 0);
-        strcpy(response, buf);  
-        bytes_recv += buf_recv;
+        // memset(buf, '\0', BUF_SIZE);
+        // buf_recv = recv(sockfd, buf, BUF_SIZE, 0);
+        // strcpy(response, buf);  
+        // bytes_recv += buf_recv;
 
         while (1){
 
@@ -286,7 +286,9 @@ int main(){
                 response = (char *)realloc(response, response_size * sizeof(char));
             }
 
-            strcat(response, buf);
+            // strcat(response, buf);
+            for (int i = 0; i < buf_recv; i++)
+                response[bytes_recv + i] = buf[i];
             bytes_recv += buf_recv;
         }
 
@@ -295,7 +297,7 @@ int main(){
         FILE* fp = fopen(req.filename, "w");
         char *body_beg_ptr = strstr(response, "\r\n\r\n");
         size_t offset = (body_beg_ptr - response) / sizeof(char);
-        fwrite(body_beg_ptr + 4, sizeof(char), 2000, stdout);
+        // fwrite(body_beg_ptr + 4, sizeof(char), 2000, stdout);
         fwrite(body_beg_ptr + 4, sizeof(char), bytes_recv - (offset + 4), fp);
 
         close(sockfd);
