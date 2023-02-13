@@ -367,16 +367,16 @@ int main()
                 bytes_recv += buf_recv;
             }
 
+            char *body_beg_ptr = strstr(response, "\r\n\r\n");
+            size_t offset = (body_beg_ptr - response) / sizeof(char);
+            printf("Response : \n\n");
+            fwrite(response, sizeof(char), offset, stdout);
+            printf("\n\n");
+
             int status_code = get_status_code(response);
+
             if (!strcmp(req.cmd, "GET"))
             {
-                char *body_beg_ptr = strstr(response, "\r\n\r\n");
-                size_t offset = (body_beg_ptr - response) / sizeof(char);
-
-                printf("Response : \n\n");
-                fwrite(response, sizeof(char), offset, stdout);
-                printf("\n\n");
-
                 if (status_code == 200)
                 {
                     FILE *fp = fopen(req.filename, "w");
@@ -397,19 +397,19 @@ int main()
                     }
                     wait(NULL); // wait for child process to finish
                 }
-                else
-                    print_status_msgs(status_code);
             }
 
-            else if (!strcmp(req.cmd, "PUT"))
-            {
-                printf("Response : \n\n");
-                char *body_beg_ptr = strstr(response, "\r\n\r\n");
-                size_t offset = (body_beg_ptr - response) / sizeof(char);
-                fwrite(response, sizeof(char), offset, stdout);
-                printf("\n\n");
-                print_status_msgs(status_code);
-            }
+            // else if (!strcmp(req.cmd, "PUT"))
+            // {
+            //     // printf("Response : \n\n");
+            //     // printf("%s", response);
+            //     // fwrite(response, sizeof(char), offset, stdout);
+            //     // printf("\n\n");
+            //     // char *body_beg_ptr = strstr(response, "\r\n\r\n");
+            //     // size_t offset = (body_beg_ptr - response) / sizeof(char);
+            // }
+
+            print_status_msgs(status_code);
         }
         else if (ret == 0)
             printf("Timeout exceeded\n");
