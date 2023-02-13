@@ -157,7 +157,7 @@ void parse_http_response(char *response)
     char *header_name, *header_value;
 
     // Get the first line (status line)
-    status_line = strtok(response, "\n");
+    status_line = strtok(response, "\r\n");
     printf("%s\n", status_line);
 
     char *start_space = strchr(status_line, ' ');
@@ -171,7 +171,7 @@ void parse_http_response(char *response)
     header_name = (char *)malloc(100 * sizeof(char)); // Initialize header_name with some memory
 
     // Get the rest of the headers
-    while ((header_line = strtok(NULL, "\n")) != NULL)
+    while ((header_line = strtok(NULL, "\r\n")) != NULL)
     {
         // Extract the header name and value
         char *delim = strchr(header_line, ':');
@@ -366,6 +366,7 @@ int main()
         fdset[0].events = POLLIN;
 
         int ret = poll(fdset, 1, TIMEOUT);
+        // printf("Poll returned : %d\n", ret);
 
         if (ret > 0)
         {
@@ -417,17 +418,10 @@ int main()
             else if (!strcmp(req.cmd, "PUT"))
             {
                 printf("Response : \n\n");
-                // printf("%s\n", response);
-                // fwrite(response, sizeof(char), bytes_recv, stdout);
-                // printf("\n\n");
-
                 char *body_beg_ptr = strstr(response, "\r\n\r\n");
                 size_t offset = (body_beg_ptr - response) / sizeof(char);
-
-                // printf("Response : \n\n");
                 fwrite(response, sizeof(char), offset, stdout);
                 printf("\n\n");
-
             }
         }
         else if (ret == 0)
