@@ -268,28 +268,30 @@ int main(){
         int inside_body = 0;
         char *body_beg_ptr;
 
-        // memset(response, '\0', MAX_SIZE);
-
         // receive response from server
         printf("\nResponse : \n\n");
         while (1){
 
             memset(buf, '\0', BUF_SIZE);
             recv(sockfd, buf, BUF_SIZE, 0);
-            printf("%s", buf);
+            // printf("%s", buf);
 
-            if ((body_beg_ptr = strstr(buf, "\r\n\r\n")) != NULL)
+            if ((body_beg_ptr = strstr(buf, "\r\n\r\n")) != NULL && inside_body == 0)
             {
                 inside_body = 1;
-                body_beg_ptr += 4;
+                body_beg_ptr += 4 * sizeof(char);
                 fprintf(fp, "%s", body_beg_ptr);
                 continue;
             }
 
             if (inside_body)
                 fprintf(fp, "%s", buf);
+            else if (!inside_body)
+                printf("%s", buf);
 
-            if (strlen(buf) < BUF_SIZE)
+            // break loop on detecting EOF
+            char *eof_ptr = strstr(buf, "%%EOF");
+            if (strchr(buf, '\0') != NULL && eof_ptr != NULL)
                 break;
         }
 
