@@ -377,7 +377,7 @@ int main()
             bytes_recv += buf_recv;
         }
 
-        if (req.cmd == "GET")
+        if (!strcmp(req.cmd, "GET"))
         {
             FILE *fp = fopen(req.filename, "w");
             char *body_beg_ptr = strstr(response, "\r\n\r\n");
@@ -390,7 +390,7 @@ int main()
             fclose(fp);
         }
 
-        else if (req.cmd == "PUT")
+        else if (!strcmp(req.cmd, "PUT"))
         {
             printf("Response : \n\n");
             fwrite(response, sizeof(char), bytes_recv, stdout);
