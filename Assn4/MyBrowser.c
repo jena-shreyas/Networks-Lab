@@ -67,23 +67,11 @@ Message parse_request(char *input)
         req.port = 80;
     }
 
-    printf("filename: %s\n", req.filename);
-    printf("port: %d\n", req.port);
-
-    // char *host_beg = strstr(req.url, "://") + 3 * sizeof(char);
-    // strncpy(req.host, host_beg, name_beg - host_beg - 1);
-    // req.host[name_beg - host_beg - 1] = '\0';
-
     char *protocol = strtok(url, ":");
     char *path_port = strtok(NULL, "");
 
     if (strchr(path_port, ':') != NULL)
-    {
         strtok(path_port, ":");
-        req.port = atoi(strtok(NULL, ":"));
-    }
-    else
-        req.port = 80;
 
     int idx = 2;
     while (path_port[idx] != '/')
@@ -260,10 +248,10 @@ int main(){
 
         // connect to server
         servaddr.sin_family = AF_INET;
-        // servaddr.sin_port = htons(req.port);
-        // inet_aton(req.ip, &servaddr.sin_addr);
-        servaddr.sin_port = htons(8080);
-        inet_aton("127.0.0.1", &servaddr.sin_addr);
+        servaddr.sin_port = htons(req.port);
+        inet_aton(req.ip, &servaddr.sin_addr);
+        // servaddr.sin_port = htons(8080);
+        // inet_aton("127.0.0.1", &servaddr.sin_addr);
 
         if ((connect(sockfd, (struct sockaddr*)&servaddr, sizeof(servaddr))) < 0)
         {
@@ -313,9 +301,9 @@ int main(){
         char *body_beg_ptr = strstr(response, "\r\n\r\n");
         size_t offset = (body_beg_ptr - response) / sizeof(char);
 
-        printf("Response : \n\n%s\n", response);
+        printf("Response : \n\n");
         fwrite(response, sizeof(char), offset, stdout);
-        printf("\n");
+        printf("\n\n");
         fwrite(body_beg_ptr + 4, sizeof(char), bytes_recv - (offset + 4), fp);
 
         close(sockfd);
