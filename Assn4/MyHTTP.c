@@ -145,6 +145,9 @@ int main(){
 
             printf("Received request from the client: %s\n", request);
 
+            // parsing the http request to get the command, url, host, port
+            
+
             
         }
     
