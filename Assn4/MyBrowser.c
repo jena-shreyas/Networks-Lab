@@ -20,7 +20,7 @@ typedef struct message_
     char host[URL_SIZE];
     char ip[URL_SIZE];
     unsigned int port;
-    char filename[URL_SIZE];  
+    char filename[URL_SIZE];
     char extension[URL_SIZE];
 } Message;
 
@@ -51,54 +51,102 @@ Message parse_request(char *input)
     Message req;
     char *token = strtok(input, " ");
     strcpy(req.cmd, token);
-    char *url = strtok(NULL, " ");
-    strcpy(req.url, url);
-    printf("url: %s\n", req.url);
-    char *name_beg = strrchr(url, '/') + sizeof(char);
-    char *port_beg = strrchr(url, ':');
+    printf("cmd: %s\n", req.cmd);
 
-    if (port_beg != NULL && port_beg > name_beg)
+    if (!strcmp(req.cmd, "GET"))
+    {     
+        char *url = strtok(NULL, " ");
+        strcpy(req.url, url);
+        printf("url: %s\n", req.url);
+        char *name_beg = strrchr(url, '/') + sizeof(char);
+        char *dot_beg = strrchr(url, '.');
+        char *port_beg = strrchr(url, ':');
+
+        if (port_beg != NULL && port_beg > dot_beg)
+        {
+            strncpy(req.filename, name_beg, port_beg - name_beg);
+            req.filename[port_beg - name_beg] = '\0';
+            req.port = atoi(port_beg + 1);
+        }
+        else
+        {
+            strcpy(req.filename, name_beg);
+            req.port = 80;
+        }
+
+        char *ext_beg = strrchr(req.filename, '.');
+        if (ext_beg != NULL)
+            strcpy(req.extension, ext_beg);
+        else
+            strcpy(req.extension, "");
+
+        char *protocol = strtok(url, ":");
+        char *path_port = strtok(NULL, "");
+
+        if (strchr(path_port, ':') != NULL)
+            strtok(path_port, ":");
+
+        int idx = 2;
+        while (path_port[idx] != '/')
+        {
+            req.host[idx - 2] = path_port[idx];
+            idx++;
+        }
+        req.host[idx - 2] = '\0';
+    }
+
+    else if (!strcmp(req.cmd, "PUT"))
     {
-        strncpy(req.filename, name_beg, port_beg - name_beg);
-        req.filename[port_beg - name_beg] = '\0';
-        req.port = atoi(port_beg + 1);
+        char *url_file = strtok(NULL, " ");
+        char *filename = strtok(NULL, " ");
+        strcpy(req.filename, filename);
+        // printf("PUT filename: %s\n", req.filename);
+
+        strncpy(req.url, url_file, filename - url_file - 1);
+        req.url[filename - url_file - 1] = '\0';
+        char *slash_beg = strrchr(req.url, '/');
+        char *port_beg = strrchr(req.url, ':');
+
+        if (port_beg != NULL && port_beg > slash_beg)
+        {
+            req.port = atoi(port_beg + 1);
+            req.url[port_beg - req.url] = '\0';
+        }
+        else
+            req.port = 80;
+
+        // printf("PUT url : %s\n", req.url);
+        // printf("PUT port : %d\n", req.port);
+        char *ext_beg = strrchr(req.filename, '.');
+        if (ext_beg != NULL)
+            strcpy(req.extension, ext_beg);
+        else
+            strcpy(req.extension, "");
+
+        char *host_begin = strstr(req.url, "://") + 3 * sizeof(char);
+        int idx = 0;
+
+        while (*host_begin != '/'){
+
+            req.host[idx++] = *host_begin;
+            host_begin += sizeof(char);
+
+        }
+        req.host[idx] = '\0';
+        // printf("PUT host : %s\n", req.host);
     }
-    else{
-        strcpy(req.filename, name_beg);
-        req.port = 80;
-    }
-
-    char *ext_beg = strrchr(req.filename, '.');
-    if (ext_beg != NULL)
-        strcpy(req.extension, ext_beg);
-    else
-        strcpy(req.extension, "");
-
-    char *protocol = strtok(url, ":");
-    char *path_port = strtok(NULL, "");
-
-    if (strchr(path_port, ':') != NULL)
-        strtok(path_port, ":");
-
-    int idx = 2;
-    while (path_port[idx] != '/')
-    {
-        req.host[idx - 2] = path_port[idx];
-        idx++;
-    }
-
-    req.host[idx - 2] = '\0';
 
     if (!inet_aton(req.host, NULL))
         strcpy(req.ip, convert_hostname_to_ip(req.host));
     else
         strcpy(req.ip, req.host);
 
+    // printf("PUT IP : %s\n", req.ip);
     return req;
 }
 
 // Function to parse the HTTP response (FIX THIS!!!!)
-void parse_http_response(char *response) 
+void parse_http_response(char *response)
 {
     char *token, *line;
     char *status_line;
@@ -117,10 +165,10 @@ void parse_http_response(char *response)
     int status_code = atoi(code);
     printf("Status code: %d\n", status_code);
 
-    header_name = (char *)malloc(100 * sizeof(char));   // Initialize header_name with some memory
+    header_name = (char *)malloc(100 * sizeof(char)); // Initialize header_name with some memory
 
     // Get the rest of the headers
-    while ((header_line = strtok(NULL, "\n")) != NULL) 
+    while ((header_line = strtok(NULL, "\n")) != NULL)
     {
         // Extract the header name and value
         char *delim = strchr(header_line, ':');
@@ -134,7 +182,8 @@ void parse_http_response(char *response)
     free(code);
 }
 
-int main(){
+int main()
+{
 
     int sockfd;
     int i;
@@ -143,18 +192,20 @@ int main(){
     char input[URL_SIZE];
     char request[MAX_SIZE];
     char *response;
-    struct tm* lt;
+    struct tm *lt;
 
     const char *prompt = "MyBrowser> ";
     buf = (char *)malloc(BUF_SIZE * sizeof(char));
 
-    while (1){
+    while (1)
+    {
 
         printf("%s", prompt);
         memset(input, '\0', MAX_SIZE);
 
         // extract input from user in chunks
-        while (1){
+        while (1)
+        {
 
             memset(buf, '\0', BUF_SIZE);
             fgets(buf, BUF_SIZE, stdin);
@@ -162,7 +213,7 @@ int main(){
 
             if (npos != NULL)
                 *npos = '\0';
-               
+
             strcat(input, buf);
             if (npos != NULL)
                 break;
@@ -180,6 +231,8 @@ int main(){
         printf("IP : %s\n", req.ip);
         printf("File : %s\n", req.filename);
         printf("Extension : %s\n", req.extension);
+
+        char *request = (char *)malloc(MAX_SIZE * sizeof(char));
 
         sprintf(request, "%s %s HTTP/1.1", req.cmd, req.url);
         strcat(request, "\r\nHost: ");
@@ -242,15 +295,31 @@ int main(){
             strcat(request, accept_type);
             strcat(request, "\r\n\r\n");
 
+            printf("Beginning content writing \n\n\n");
+
+            // ************************ CORRECT THIS PART, REMOVE strlen and use char-wise writing instead, also need to use realloc in loop ************************
+            int offset = strlen(request);
+            int request_size = MAX_SIZE;
             char *file_content = (char *)malloc(size * sizeof(char));
             fread(file_content, sizeof(char), size, fp);
-            strcat(request, file_content);
+
+            for (i = 0; i < size; i++)
+            {
+                if (offset + i >= request_size)
+                {
+                    request_size *= 2;
+                    request = realloc(request, request_size * sizeof(char));
+                }
+                request[offset + i] = file_content[i];
+            }
             fclose(fp);
 
+            printf("File size : %d\n",size);
             printf("Request : \n\n%s\n", request);
         }
 
-        if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0){
+        if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+        {
             perror("Client socket could not be created!");
             exit(0);
         }
@@ -262,7 +331,7 @@ int main(){
         // servaddr.sin_port = htons(8080);
         // inet_aton("127.0.0.1", &servaddr.sin_addr);
 
-        if ((connect(sockfd, (struct sockaddr*)&servaddr, sizeof(servaddr))) < 0)
+        if ((connect(sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr))) < 0)
         {
             perror("Client could not connect to server!");
             exit(0);
@@ -270,7 +339,8 @@ int main(){
 
         char *request_ptr = request;
         //  send input in chunks
-        while (1){
+        while (1)
+        {
 
             memset(buf, '\0', BUF_SIZE);
             strncpy(buf, request_ptr, BUF_SIZE);
@@ -288,7 +358,8 @@ int main(){
         int bytes_recv = 0;
         int buf_recv;
 
-        while (1){
+        while (1)
+        {
 
             memset(buf, '\0', BUF_SIZE);
             if ((buf_recv = recv(sockfd, buf, BUF_SIZE, 0)) == 0)
@@ -306,17 +377,27 @@ int main(){
             bytes_recv += buf_recv;
         }
 
-        FILE* fp = fopen(req.filename, "w");
-        char *body_beg_ptr = strstr(response, "\r\n\r\n");
-        size_t offset = (body_beg_ptr - response) / sizeof(char);
+        if (req.cmd == "GET")
+        {
+            FILE *fp = fopen(req.filename, "w");
+            char *body_beg_ptr = strstr(response, "\r\n\r\n");
+            size_t offset = (body_beg_ptr - response) / sizeof(char);
 
-        printf("Response : \n\n");
-        fwrite(response, sizeof(char), offset, stdout);
-        printf("\n\n");
-        fwrite(body_beg_ptr + 4, sizeof(char), bytes_recv - (offset + 4), fp);
+            printf("Response : \n\n");
+            fwrite(response, sizeof(char), offset, stdout);
+            printf("\n\n");
+            fwrite(body_beg_ptr + 4, sizeof(char), bytes_recv - (offset + 4), fp);
+            fclose(fp);
+        }
+
+        else if (req.cmd == "PUT")
+        {
+            printf("Response : \n\n");
+            fwrite(response, sizeof(char), bytes_recv, stdout);
+            printf("\n\n");
+        }
 
         close(sockfd);
-        fclose(fp);
     }
     return 0;
 }
