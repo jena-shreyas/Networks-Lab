@@ -264,6 +264,7 @@ int main()
 
         else if (!strcmp(req.cmd, "PUT"))
         {
+            // add PUT request-specific headers
             strcat(request, "\r\nContent-Language: en-US");
             strcat(request, "\r\nContent-Length: ");
             FILE *fp = fopen(req.filename, "r");
@@ -278,6 +279,7 @@ int main()
             strcat(request, accept_type);
             strcat(request, "\r\n\r\n");
 
+            // read file content and append to request
             int offset = strlen(request);
             int request_size = MAX_SIZE;
             char *file_content = (char *)malloc(size * sizeof(char));
@@ -294,10 +296,12 @@ int main()
             }
             fclose(fp);
 
+            // display request to be sent to server
             printf("Request : \n\n");
             fwrite(request, sizeof(char), offset, stdout);
         }
 
+        // establish connection to server
         if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
         {
             perror("Client socket could not be created!");
@@ -309,13 +313,16 @@ int main()
         servaddr.sin_port = htons(req.port);
         inet_aton(req.ip, &servaddr.sin_addr);
 
+        // servaddr.sin_port = htons(20000);
+        // inet_aton("127.0.0.1", &servaddr.sin_addr);
+
         if ((connect(sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr))) < 0)
         {
             perror("Client could not connect to server!");
             exit(0);
         }
-        char *request_ptr = request;
 
+        char *request_ptr = request;
         //  send input in chunks
         while (1)
         {
@@ -401,6 +408,7 @@ int main()
                 size_t offset = (body_beg_ptr - response) / sizeof(char);
                 fwrite(response, sizeof(char), offset, stdout);
                 printf("\n\n");
+                print_status_msgs(status_code);
             }
         }
         else if (ret == 0)
