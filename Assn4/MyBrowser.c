@@ -20,7 +20,8 @@ typedef struct message_
     char host[URL_SIZE];
     char ip[URL_SIZE];
     unsigned int port;
-    char filename[URL_SIZE];    
+    char filename[URL_SIZE];  
+    char extension[URL_SIZE];
 } Message;
 
 // convert hostname to IP address
@@ -66,6 +67,12 @@ Message parse_request(char *input)
         strcpy(req.filename, name_beg);
         req.port = 80;
     }
+
+    char *ext_beg = strrchr(req.filename, '.');
+    if (ext_beg != NULL)
+        strcpy(req.extension, ext_beg);
+    else
+        strcpy(req.extension, "");
 
     char *protocol = strtok(url, ":");
     char *path_port = strtok(NULL, "");
@@ -172,6 +179,7 @@ int main(){
         printf("Port : %d\n", req.port);
         printf("IP : %s\n", req.ip);
         printf("File : %s\n", req.filename);
+        printf("Extension : %s\n", req.extension);
 
         sprintf(request, "%s %s HTTP/1.1", req.cmd, req.url);
         strcat(request, "\r\nHost: ");
@@ -186,16 +194,15 @@ int main(){
         strcat(request, "\r\nDate: ");
         strcat(request, buf);
 
-        char *extension = strrchr(req.url, '.');
         char accept_type[BUF_SIZE];
 
-        if (extension != NULL)
+        if (req.extension != NULL)
         {
-            if (!strcmp(extension, ".html"))
+            if (!strcmp(req.extension, ".html"))
                 strcpy(accept_type, "text/html");
-            else if (!strcmp(extension, ".jpg"))
+            else if (!strcmp(req.extension, ".jpg"))
                 strcpy(accept_type, "image/jpeg");
-            else if (!strcmp(extension, ".pdf"))
+            else if (!strcmp(req.extension, ".pdf"))
                 strcpy(accept_type, "application/pdf");
             else
                 strcpy(accept_type, "text/*");
@@ -211,6 +218,8 @@ int main(){
             // strftime(buf, BUF_SIZE, "%a, %d %b %Y %H:%M:%S %Z", lt);
             // strcat(request, "\nIf-Modified-Since: ");
             // strcat(request, buf);
+
+            // add newline at end of request header
             strcat(request, "\r\n\r\n");
 
             printf("Request : \n\n%s", request);
@@ -220,7 +229,7 @@ int main(){
         {
             strcat(request, "\r\nContent-Language: en-US");
             strcat(request, "\r\nContent-Length: ");
-            FILE *fp = fopen((req.url + 1), "r");
+            FILE *fp = fopen(req.filename, "r");
             fseek(fp, 0, SEEK_END);
             int size = ftell(fp);
             fseek(fp, 0, SEEK_SET);
