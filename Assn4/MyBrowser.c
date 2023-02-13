@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 #include <sys/socket.h>
 #include <netdb.h>
 #include <netinet/in.h>
@@ -328,8 +329,6 @@ int main()
         servaddr.sin_family = AF_INET;
         servaddr.sin_port = htons(req.port);
         inet_aton(req.ip, &servaddr.sin_addr);
-        // servaddr.sin_port = htons(8080);
-        // inet_aton("127.0.0.1", &servaddr.sin_addr);
 
         if ((connect(sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr))) < 0)
         {
@@ -360,7 +359,6 @@ int main()
 
         while (1)
         {
-
             memset(buf, '\0', BUF_SIZE);
             if ((buf_recv = recv(sockfd, buf, BUF_SIZE, 0)) == 0)
                 break;
@@ -388,6 +386,20 @@ int main()
             printf("\n\n");
             fwrite(body_beg_ptr + 4, sizeof(char), bytes_recv - (offset + 4), fp);
             fclose(fp);
+
+            if (fork() == 0)
+            {
+                close(sockfd);
+                if (!strcmp(req.extension, ".html"))
+                    execlp("/usr/bin/firefox", "firefox", req.filename, NULL);
+                else if (!strcmp(req.extension, ".jpg"))
+                    execlp("/usr/bin/shotwell", "shotwell", req.filename, NULL);
+                else if (!strcmp(req.extension, ".pdf"))
+                    execlp("/usr/bin/xdg-open", "xdg-open", req.filename, NULL);
+                else
+                    execlp("/usr/bin/gedit", "gedit", req.filename, NULL);
+            }
+            wait(NULL); // wait for child process to finish
         }
 
         else if (!strcmp(req.cmd, "PUT"))
