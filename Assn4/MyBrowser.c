@@ -48,12 +48,32 @@ char *convert_hostname_to_ip(char *host)
 Message parse_request(char *input)
 {
     Message req;
-
     char *token = strtok(input, " ");
     strcpy(req.cmd, token);
     char *url = strtok(NULL, " ");
-    strcpy(req.url, url);    
-    strcpy(req.filename, strrchr(url, '/') + sizeof(char));
+    strcpy(req.url, url);
+    printf("url: %s\n", req.url);
+    char *name_beg = strrchr(url, '/') + sizeof(char);
+    char *port_beg = strrchr(url, ':');
+
+    if (port_beg != NULL && port_beg > name_beg)
+    {
+        strncpy(req.filename, name_beg, port_beg - name_beg);
+        req.filename[port_beg - name_beg] = '\0';
+        req.port = atoi(port_beg + 1);
+    }
+    else{
+        strcpy(req.filename, name_beg);
+        req.port = 80;
+    }
+
+    printf("filename: %s\n", req.filename);
+    printf("port: %d\n", req.port);
+
+    // char *host_beg = strstr(req.url, "://") + 3 * sizeof(char);
+    // strncpy(req.host, host_beg, name_beg - host_beg - 1);
+    // req.host[name_beg - host_beg - 1] = '\0';
+
     char *protocol = strtok(url, ":");
     char *path_port = strtok(NULL, "");
 
@@ -210,8 +230,8 @@ int main(){
 
         else if (!strcmp(req.cmd, "PUT"))
         {
-            strcat(request, "\nContent-Language: en-US");
-            strcat(request, "\nContent-Length: ");
+            strcat(request, "\r\nContent-Language: en-US");
+            strcat(request, "\r\nContent-Length: ");
             FILE *fp = fopen((req.url + 1), "r");
             fseek(fp, 0, SEEK_END);
             int size = ftell(fp);
@@ -221,9 +241,8 @@ int main(){
             sprintf(size_str, "%d", size);
             strcat(request, size_str);
 
-            strcat(request, "\nContent-Type: ");
+            strcat(request, "\r\nContent-Type: ");
             strcat(request, accept_type);
-
             strcat(request, "\r\n\r\n");
 
             char *file_content = (char *)malloc(size * sizeof(char));
@@ -267,42 +286,36 @@ int main(){
         }
 
         // receive response from server
-        printf("\nResponse : \n\n");
         response = (char *)malloc(MAX_SIZE * sizeof(char));
         int response_size = MAX_SIZE;
         int bytes_recv = 0;
         int buf_recv;
 
-        // memset(buf, '\0', BUF_SIZE);
-        // buf_recv = recv(sockfd, buf, BUF_SIZE, 0);
-        // strcpy(response, buf);  
-        // bytes_recv += buf_recv;
-
         while (1){
 
-            if ((buf_recv = recv(sockfd, buf, BUF_SIZE, 0)) == 0){
-                perror("Server closed connection!");
-                // break;
-                exit(0);
-            }
+            memset(buf, '\0', BUF_SIZE);
+            if ((buf_recv = recv(sockfd, buf, BUF_SIZE, 0)) == 0)
+                break;
             while (response_size <= bytes_recv + buf_recv)
             {
                 response_size *= 2;
                 response = (char *)realloc(response, response_size * sizeof(char));
             }
 
-            // strcat(response, buf);
+            // writing response from buffer
             for (int i = 0; i < buf_recv; i++)
                 response[bytes_recv + i] = buf[i];
+
             bytes_recv += buf_recv;
         }
 
-        // printf("%s", response);
-        
         FILE* fp = fopen(req.filename, "w");
         char *body_beg_ptr = strstr(response, "\r\n\r\n");
         size_t offset = (body_beg_ptr - response) / sizeof(char);
-        // fwrite(body_beg_ptr + 4, sizeof(char), 2000, stdout);
+
+        printf("Response : \n\n%s\n", response);
+        fwrite(response, sizeof(char), offset, stdout);
+        printf("\n");
         fwrite(body_beg_ptr + 4, sizeof(char), bytes_recv - (offset + 4), fp);
 
         close(sockfd);
