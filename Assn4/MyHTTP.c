@@ -88,7 +88,7 @@ int recv_request(int newsockfd, char *request){
             printf("The server S1 has closed the connection.\n");
             close(newsockfd);
             return -1;
-            // exit(0);
+            // exit(0)
         }
 
         total_bytes_recv += bytes_recv;
@@ -107,7 +107,6 @@ int recv_request(int newsockfd, char *request){
         if(request[i-1] == '\0')
             break;
     }
-
     return 0;
 }
 
@@ -144,7 +143,7 @@ int parse_request(char *request, Message *msg){
             char *token = strtok(tokens[j], " ");
 
             strcpy(msg->cmd, token);
-            printf("Command: %s\n", msg->cmd);
+            // printf("Command: %s\n", msg->cmd);
             cmd_flag = 1;
 
             // now get the url
@@ -156,14 +155,14 @@ int parse_request(char *request, Message *msg){
             strcpy(msg->ip, convert_hostname_to_ip(token));
             token = strtok(NULL, ":");
             strcpy(msg->file_path, token);
-            printf("File path: %s\n", msg->file_path);
+            // printf("File path: %s\n", msg->file_path);
 
             // now get the port number
             if ( (token = strtok(NULL, ":")) == NULL)
                 msg->port = 80;
             else
                 msg->port = atoi(token);
-            printf("Port: %d\n", msg->port);
+            // printf("Port: %d\n", msg->port);
         }
 
         // identify the header with the host
@@ -171,7 +170,7 @@ int parse_request(char *request, Message *msg){
             char *token = strtok(tokens[j], " ");
             token = strtok(NULL, " ");
             strcpy(msg->host, token);
-            printf("Host: %s\n", msg->host);
+            // printf("Host: %s\n", msg->host);
             host_flag = 1;
         }
 
@@ -180,7 +179,7 @@ int parse_request(char *request, Message *msg){
             char *token = strtok(tokens[j], " ");
             token = strtok(NULL, " ");
             strcpy(msg->conn_type, token);
-            printf("Connection type: %s\n", msg->conn_type);
+            // printf("Connection type: %s\n", msg->conn_type);
 
             if (strcmp(msg->conn_type, "keep-alive") != 0 || strcmp(msg->conn_type, "close") != 0){
                 printf("The connection type is supported by the server.\n");
@@ -194,7 +193,7 @@ int parse_request(char *request, Message *msg){
             char *token = strtok(tokens[j], " ");
             token = strtok(NULL, " ");
             strcpy(msg->accept_type, token);
-            printf("Accept type: %s\n", msg->accept_type);
+            // printf("Accept type: %s\n", msg->accept_type);
 
             if (strcmp(msg->accept_type, "text/html") != 0 || strcmp(msg->accept_type, "application/pdf") != 0 || strcmp(msg->accept_type, "image/jpeg") != 0 || strcmp(msg->accept_type, "text/*") != 0){
                 printf("The requested file type is supported by the server.\n");
@@ -207,7 +206,7 @@ int parse_request(char *request, Message *msg){
             char *token = strtok(tokens[j], " ");
             token = strtok(NULL, " ");
             strcpy(msg->accept_lang, token);
-            printf("Accept language: %s\n", msg->accept_lang);
+            // printf("Accept language: %s\n", msg->accept_lang);
         }
 
         // get the if-modified-since header
@@ -215,7 +214,7 @@ int parse_request(char *request, Message *msg){
             char *token = strtok(tokens[j], " ");
             token = strtok(NULL, "\r");
             strcpy(msg->if_mod_since, token);
-            printf("If modified since: %s\n", msg->if_mod_since);
+            // printf("If modified since: %s\n", msg->if_mod_since);
         }
     }
 
@@ -228,6 +227,54 @@ int parse_request(char *request, Message *msg){
         return -1;
     }
 
+}
+
+void add_standard_headers(char *response){
+
+    // send the connection type to the client
+    strcat(response, "\r\nConnection: ");
+    strcat(response, "close");
+
+    // send the cache control to the client
+    strcat(response, "\r\nCache-Control: ");
+    strcat(response, "no-cache");
+
+    // send the expires time to the client
+    strcat(response, "\r\nExpires: ");
+
+    // set it to the current time + 3 days
+    time_t curr_time = time(NULL);
+    struct tm* curr_local_time_struct = localtime(&curr_time);
+    curr_local_time_struct->tm_mday += 3;
+
+    char * time_str = (char *)malloc(100*sizeof(char));
+    strftime(time_str, 100, "%a, %d %b %Y %H:%M:%S %Z", curr_local_time_struct);
+    strcat(response, time_str);
+
+    return;
+
+}
+
+void add_date_server_name_headers(char *response){
+
+    // send the current date and time (local time) to the client
+    time_t curr_time = time(NULL);
+    struct tm *curr_local_time_struct = localtime(&curr_time);
+
+    char *time_str = (char *)malloc(100*sizeof(char));
+    strftime(time_str, 100, "%a, %d %b %Y %H:%M:%S %Z", curr_local_time_struct);
+    strcat(response, "\r\nDate: ");
+    strcat(response, time_str);
+    
+    // send the server name to the client
+    strcat(response, "\r\nServer: ");
+    // get the local host name
+    char *host_name = (char *)malloc(100*sizeof(char));
+    gethostname(host_name, 100);
+    printf("Host name: %s\n", host_name);
+    strcat(response, host_name);
+
+    return;
 }
 
 
@@ -293,10 +340,23 @@ int main(){
             int curr_resp_size = MAX_SIZE;
 
             int res = parse_request(request, msg);
+            int offset = 0, file_len = 0;
             if (res == -1){
             
                 // send the error message to the client
+                strcpy(response, "HTTP/1.1 400 Bad Request");
 
+                // add date and server name headers
+                add_date_server_name_headers(response);
+
+                // add the standard headers
+                add_standard_headers(response);
+
+                // no content to be sent
+                strcat(response, "\r\n\r\n");
+
+                offset = strlen(response);
+                file_len = 0;
 
             }
 
@@ -306,7 +366,8 @@ int main(){
                     // send the file to the client
 
                     FILE *fp;
-                    int file_len = 0;
+                    file_len = 0;
+                    int file_content_len = 0;
                     int file_send_flag = 1;
                     char *file_content_buff = (char *)malloc(MAX_SIZE*sizeof(char));
 
@@ -387,66 +448,38 @@ int main(){
                     if (file_send_flag == 1){
                         
                         // start reading the contents of the file in a seperate buffer
-                        
                         memset(file_content_buff, 0, MAX_SIZE);
                         int curr_buff_size = MAX_SIZE;
-                        int file_content_len = 0;
+                        file_content_len = 0;
 
                         int read_bytes = 0;
 
                         // calculate the length of the file in bytes
+                        file_len = 0;
                         fseek(fp, 0, SEEK_END);
                         file_len = ftell(fp);
                         fseek(fp, 0, SEEK_SET);
 
-                        // read the file contents in chunks of MAX_SIZE bytes
+                        // printf("File length: %d\n", file_len);
+                        file_content_buff = (char *)realloc(file_content_buff, file_len*sizeof(char));
+                        fread(file_content_buff, sizeof(char), file_len, fp);
 
-                        while (!feof(fp)){
-                            read_bytes = fread(file_content_buff + file_content_len, sizeof(char), MAX_SIZE, fp);
-                            
-                            if (ferror(fp)){ // if there is an error in reading the file
-                                printf("Error reading the file.\n");
-                                // send the 500 error message to the client
-                                memset(response, 0, curr_resp_size);
-                                strcpy(response, "HTTP/1.1 500 Internal Server Error");
-                                file_send_flag = 0; // do not send the file to the client as error has occurred
-                                break;
-                            }
+                        fclose(fp);
 
-                            file_content_len += read_bytes;
-
-                            if (file_content_len == curr_buff_size){
-                                curr_buff_size *= 2;
-                                file_content_buff = (char *)realloc(file_content_buff, curr_buff_size*sizeof(char));
-                            }
-                        }
-
+                        // printf("File read successfully.\n");
                         FILE *fp1 = fopen("test.txt", "w");
                         fwrite(file_content_buff, sizeof(char), file_content_len, fp1);
 
                         // send the response to the client if there is no error in reading the file
-
                         if (file_send_flag == 1){
                             // send the 200 OK message to the client
                             memset(response, 0, curr_resp_size);
                             strcpy(response, "HTTP/1.1 200 OK");
-
                         }
-
                     }
 
-                    // send the current date and time (local time) to the client
-                    time_t curr_time = time(NULL);
-                    struct tm *curr_local_time_struct = localtime(&curr_time);
-
-                    char *time_str = (char *)malloc(100*sizeof(char));
-                    strftime(time_str, 100, "%a, %d %b %Y %H:%M:%S %Z", curr_local_time_struct);
-                    strcat(response, "\r\nDate: ");
-                    strcat(response, time_str);
-                 
-                    // send the server name to the client
-                    strcat(response, "\r\nServer: ");
-                    strcat(response, "HP-Victus 16-E");
+                    // add the date and server headers
+                    add_date_server_name_headers(response);
 
                     // send the last modified time of the file to the client
                     if (file_send_flag == 1){
@@ -498,53 +531,45 @@ int main(){
                         strcat(response, file_lang);
                     }
 
-                    // send the connection type to the client
-                    strcat(response, "\r\nConnection: ");
-                    strcat(response, "close");
+                    add_standard_headers(response);
 
-                    // send the cache control to the client
-                    strcat(response, "\r\nCache-Control: ");
-                    strcat(response, "no-cache");
-
-                    // send the expires time to the client
-                    strcat(response, "\r\nExpires: ");
-
-                    // set it to the current time + 3 days
-                    curr_time = time(NULL);
-                    curr_local_time_struct = localtime(&curr_time);
-                    curr_local_time_struct->tm_mday += 3;
-
-                    time_str = (char *)malloc(100*sizeof(char));
-                    strftime(time_str, 100, "%a, %d %b %Y %H:%M:%S %Z", curr_local_time_struct);
-                    strcat(response, time_str);
-
-                    // send the response to the client
-
+                    // add the content of the file to the response if the file_send_flag is set
                     if (file_send_flag == 1){
                         strcat(response, "\r\n\r\n");
-                        strcat(response, file_content_buff);
+                        printf("Sending the response to the client.\n");
+                        offset = strlen(response);
+                        int request_size = MAX_SIZE;
+
+                        for (int i = 0; i < file_len; i++)
+                        {
+                            if (offset + i >= request_size)
+                            {
+                                request_size *= 2;
+                                response = realloc(response, request_size * sizeof(char));
+                            }
+                            response[offset + i] = file_content_buff[i];
+                        }
+                                    
                     }   
                     else{
                             strcat(response, "\r\n\r\n");
                     }
-                    
-                    printf("Sending the response to the client.\n");
-                    printf("%s\n", response);
-
-                    int bytes_sent = send(newsockfd, response, strlen(response), 0);
-
-                    if (bytes_sent < 0){
-                        printf("Error sending the response to the client.\n");
-                        exit(1);
-                    }
-
-
-
-
-                    
-
                 }
 
+                else if (strcmp(msg->cmd, "PUT") == 0){
+                    //
+                }
+
+            }
+
+            printf("Sending the response to the client.\n");
+            printf("%s\n", response);
+
+            int bytes_sent = send(newsockfd, response, offset + file_len , 0);
+
+            if (bytes_sent < 0){
+                printf("Error sending the response to the client.\n");
+                exit(1);
             }
 
             // parsing the http request to get the command, url, host, port
