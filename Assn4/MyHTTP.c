@@ -24,10 +24,13 @@ typedef struct message_
     char host[URL_SIZE];
     char ip[URL_SIZE];
     char conn_type[MAX_BUF_SIZE];
-    char accept_type[URL_SIZE];
+    char accept_type[MAX_BUF_SIZE];
     char accept_lang[MAX_BUF_SIZE];
     unsigned int port;
     char if_mod_since[URL_SIZE];
+    char content_lang[MAX_BUF_SIZE];
+    char content_type[MAX_BUF_SIZE];
+    long long int content_len;
 } Message;
 
 
@@ -41,6 +44,9 @@ Message *init_message(){
     memset(msg->accept_type, 0, URL_SIZE);
     memset(msg->accept_lang, 0, MAX_BUF_SIZE);
     memset(msg->if_mod_since, 0, URL_SIZE);
+    memset(msg->content_lang, 0, MAX_BUF_SIZE);
+    memset(msg->content_type, 0, MAX_BUF_SIZE);
+    msg->content_len = 0;
     msg->port = 0;
     return msg;
 }
@@ -143,7 +149,7 @@ int parse_request(char *request, Message *msg){
             char *token = strtok(tokens[j], " ");
 
             strcpy(msg->cmd, token);
-            // printf("Command: %s\n", msg->cmd);
+            printf("Command: %s\n", msg->cmd);
             cmd_flag = 1;
 
             // now get the url
@@ -155,14 +161,14 @@ int parse_request(char *request, Message *msg){
             strcpy(msg->ip, convert_hostname_to_ip(token));
             token = strtok(NULL, ":");
             strcpy(msg->file_path, token);
-            // printf("File path: %s\n", msg->file_path);
+            printf("File path: %s\n", msg->file_path);
 
             // now get the port number
             if ( (token = strtok(NULL, ":")) == NULL)
                 msg->port = 80;
             else
                 msg->port = atoi(token);
-            // printf("Port: %d\n", msg->port);
+            printf("Port: %d\n", msg->port);
         }
 
         // identify the header with the host
@@ -170,7 +176,7 @@ int parse_request(char *request, Message *msg){
             char *token = strtok(tokens[j], " ");
             token = strtok(NULL, " ");
             strcpy(msg->host, token);
-            // printf("Host: %s\n", msg->host);
+            printf("Host: %s\n", msg->host);
             host_flag = 1;
         }
 
@@ -179,7 +185,7 @@ int parse_request(char *request, Message *msg){
             char *token = strtok(tokens[j], " ");
             token = strtok(NULL, " ");
             strcpy(msg->conn_type, token);
-            // printf("Connection type: %s\n", msg->conn_type);
+            printf("Connection type: %s\n", msg->conn_type);
 
             if (strcmp(msg->conn_type, "keep-alive") != 0 || strcmp(msg->conn_type, "close") != 0){
                 printf("The connection type is supported by the server.\n");
@@ -216,6 +222,8 @@ int parse_request(char *request, Message *msg){
             strcpy(msg->if_mod_since, token);
             // printf("If modified since: %s\n", msg->if_mod_since);
         }
+
+        
     }
 
     if (cmd_flag  == 1 && host_flag == 1 && conn_type_flag == 1 && accept_type_flag == 1){
@@ -549,7 +557,9 @@ int main(){
                             }
                             response[offset + i] = file_content_buff[i];
                         }
-                                    
+
+                        // free the memory allocated to the file content buffer
+                        free(file_content_buff);
                     }   
                     else{
                             strcat(response, "\r\n\r\n");
