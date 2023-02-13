@@ -126,7 +126,7 @@ Message parse_request(char *input)
         char *host_begin = strstr(req.url, "://") + 3 * sizeof(char);
         int idx = 0;
 
-        while (*host_begin != '/'){
+        while (*host_begin != '/' && *host_begin != '\0'){
 
             req.host[idx++] = *host_begin;
             host_begin += sizeof(char);
