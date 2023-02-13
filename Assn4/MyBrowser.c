@@ -148,41 +148,19 @@ Message parse_request(char *input)
     return req;
 }
 
-// Function to parse the HTTP response (FIX THIS!!!!)
-void parse_http_response(char *response)
+
+int get_status_code(char *response)
 {
-    char *token, *line;
-    char *status_line;
-    char *header_line;
-    char *header_name, *header_value;
-
-    // Get the first line (status line)
-    status_line = strtok(response, "\r\n");
-    printf("%s\n", status_line);
-
-    char *start_space = strchr(status_line, ' ');
-    char *end_space = strrchr(status_line, ' ');
-    char *code = (char *)malloc((end_space - start_space) * sizeof(char));
-    strncpy(code, start_space, end_space - start_space);
-    code[end_space - start_space] = '\0';
-    int status_code = atoi(code);
-    printf("Status code: %d\n", status_code);
-
-    header_name = (char *)malloc(100 * sizeof(char)); // Initialize header_name with some memory
-
-    // Get the rest of the headers
-    while ((header_line = strtok(NULL, "\r\n")) != NULL)
-    {
-        // Extract the header name and value
-        char *delim = strchr(header_line, ':');
-        header_value = delim + 2;
-        header_name = realloc(header_name, (delim - header_line) * sizeof(char));
-        strncpy(header_name, header_line, delim - header_line);
-        header_name[delim - header_line] = '\0';
-
-        printf("%s: %s\n", header_name, header_value);
-    }
-    free(code);
+    if (strstr(response, "200 OK") != NULL)
+        return 200;
+    else if (strstr(response, "404 Not Found") != NULL)
+        return 404;
+    else if (strstr(response, "400 Bad Request") != NULL)
+        return 400;
+    else if (strstr(response, "403 Forbidden") != NULL)
+        return 403;
+    else
+        return 0;
 }
 
 int main()
@@ -226,14 +204,6 @@ int main()
             break;
 
         Message req = parse_request(input);
-        // printf("Command : %s\n", req.cmd);
-        // printf("URL : %s\n", req.url);
-        // printf("Host : %s\n", req.host);
-        // printf("Port : %d\n", req.port);
-        // printf("IP : %s\n", req.ip);
-        // printf("File : %s\n", req.filename);
-        // printf("Extension : %s\n", req.extension);
-
         char *request = (char *)malloc(MAX_SIZE * sizeof(char));
 
         sprintf(request, "%s %s HTTP/1.1", req.cmd, req.url);
@@ -277,7 +247,7 @@ int main()
             // add newline at end of request header
             lt->tm_min -= 1;
             strftime(buf, BUF_SIZE, "%a, %d %b %Y %H:%M:%S %Z", lt);
-            strcat(request, "\nIf-Modified-Since: ");
+            strcat(request, "\r\nIf-Modified-Since: ");
             strcat(request, buf);
             strcat(request, "\r\n\r\n");
 
@@ -296,12 +266,9 @@ int main()
             char size_str[BUF_SIZE];
             sprintf(size_str, "%d", size);
             strcat(request, size_str);
-
             strcat(request, "\r\nContent-Type: ");
             strcat(request, accept_type);
             strcat(request, "\r\n\r\n");
-
-            // printf("Beginning content writing \n\n\n");
 
             int offset = strlen(request);
             int request_size = MAX_SIZE;
@@ -319,7 +286,6 @@ int main()
             }
             fclose(fp);
 
-            // printf("File size : %d\n",size);
             printf("Request : \n\n");
             fwrite(request, sizeof(char), offset, stdout);
         }
@@ -364,9 +330,7 @@ int main()
         struct pollfd fdset[1];
         fdset[0].fd = sockfd;
         fdset[0].events = POLLIN;
-
         int ret = poll(fdset, 1, TIMEOUT);
-        // printf("Poll returned : %d\n", ret);
 
         if (ret > 0)
         {
