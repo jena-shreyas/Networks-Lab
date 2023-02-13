@@ -127,7 +127,7 @@ int main(){
     char *buf;
     char input[URL_SIZE];
     char request[MAX_SIZE];
-    char response[MAX_SIZE];
+    char *response;
     struct tm* lt;
 
     const char *prompt = "MyBrowser> ";
@@ -264,42 +264,40 @@ int main(){
                 break;
         }
 
-        FILE* fp = fopen(req.filename, "w");
-        int inside_body = 0;
-        char *body_beg_ptr;
-
         // receive response from server
         printf("\nResponse : \n\n");
+        response = (char *)malloc(MAX_SIZE * sizeof(char));
+        int response_size = MAX_SIZE;
+        int bytes_recv = 0;
+        int buf_recv;
+
+        memset(buf, '\0', BUF_SIZE);
+        buf_recv = recv(sockfd, buf, BUF_SIZE, 0);
+        strcpy(response, buf);  
+        bytes_recv += buf_recv;
+
         while (1){
 
-            memset(buf, '\0', BUF_SIZE);
-            recv(sockfd, buf, BUF_SIZE, 0);
-            printf("%s", buf);
-
-            if ((body_beg_ptr = strstr(buf, "\r\n\r\n")) != NULL && inside_body == 0)
+            if ((buf_recv = recv(sockfd, buf, BUF_SIZE, 0)) == 0)
+                break;
+            while (response_size <= bytes_recv + buf_recv)
             {
-                inside_body = 1;
-                body_beg_ptr += 4 * sizeof(char);
-                fprintf(fp, "%s", body_beg_ptr);
-                continue;
+                response_size *= 2;
+                response = (char *)realloc(response, response_size * sizeof(char));
             }
 
-            if (inside_body)
-                fprintf(fp, "%s", buf);
-            else if (!inside_body)
-                printf("%s", buf);
-
-            // break loop on detecting EOF
-            char *eof_ptr = strstr(buf, "%%EOF");
-            if (eof_ptr != NULL)
-                break;
+            strcat(response, buf);
+            bytes_recv += buf_recv;
         }
 
-        // // parse response
-        // char *response_ptr = response;
-        // memset(buf, '\0', BUF_SIZE);
+        // printf("%s", response);
+        
+        FILE* fp = fopen(req.filename, "w");
+        char *body_beg_ptr = strstr(response, "\r\n\r\n");
+        size_t offset = (body_beg_ptr - response) / sizeof(char);
+        fwrite(body_beg_ptr + 4, sizeof(char), 2000, stdout);
+        fwrite(body_beg_ptr + 4, sizeof(char), bytes_recv - (offset + 4), fp);
 
-        // parse_http_response(response_ptr);
         close(sockfd);
         fclose(fp);
     }
