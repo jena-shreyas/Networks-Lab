@@ -148,7 +148,6 @@ Message parse_request(char *input)
     return req;
 }
 
-
 int get_status_code(char *response)
 {
     if (strstr(response, "200 OK") != NULL)
@@ -161,6 +160,20 @@ int get_status_code(char *response)
         return 403;
     else
         return 0;
+}
+
+void print_status_msgs(int status_code)
+{
+    if (status_code == 200)
+        printf("200 OK\n");
+    else if (status_code == 404)
+        printf("404 Not Found\n");
+    else if (status_code == 400)
+        printf("400 Bad Request\n");
+    else if (status_code == 403)
+        printf("403 Forbidden\n");
+    else
+        printf("Unknown Error\n");
 }
 
 int main()
@@ -186,7 +199,6 @@ int main()
         // extract input from user in chunks
         while (1)
         {
-
             memset(buf, '\0', BUF_SIZE);
             fgets(buf, BUF_SIZE, stdin);
             char *npos = strchr(buf, '\n');
@@ -241,14 +253,10 @@ int main()
 
             // lt->tm_mday -= 2;
             // strftime(buf, BUF_SIZE, "%a, %d %b %Y %H:%M:%S %Z", lt);
-            // strcat(request, "\nIf-Modified-Since: ");
+            // strcat(request, "\r\nIf-Modified-Since: ");
             // strcat(request, buf);
 
             // add newline at end of request header
-            lt->tm_min -= 1;
-            strftime(buf, BUF_SIZE, "%a, %d %b %Y %H:%M:%S %Z", lt);
-            strcat(request, "\r\nIf-Modified-Since: ");
-            strcat(request, buf);
             strcat(request, "\r\n\r\n");
 
             printf("Request : \n\n%s", request);
@@ -352,31 +360,38 @@ int main()
                 bytes_recv += buf_recv;
             }
 
+            int status_code = get_status_code(response);
             if (!strcmp(req.cmd, "GET"))
             {
-                FILE *fp = fopen(req.filename, "w");
                 char *body_beg_ptr = strstr(response, "\r\n\r\n");
                 size_t offset = (body_beg_ptr - response) / sizeof(char);
 
                 printf("Response : \n\n");
                 fwrite(response, sizeof(char), offset, stdout);
                 printf("\n\n");
-                fwrite(body_beg_ptr + 4, sizeof(char), bytes_recv - (offset + 4), fp);
-                fclose(fp);
 
-                if (fork() == 0)
+                if (status_code == 200)
                 {
-                    close(sockfd);
-                    if (!strcmp(req.extension, ".html"))
-                        execlp("/usr/bin/firefox", "firefox", req.filename, NULL);
-                    else if (!strcmp(req.extension, ".jpg"))
-                        execlp("/usr/bin/shotwell", "shotwell", req.filename, NULL);
-                    else if (!strcmp(req.extension, ".pdf"))
-                        execlp("/usr/bin/xdg-open", "xdg-open", req.filename, NULL);
-                    else
-                        execlp("/usr/bin/gedit", "gedit", req.filename, NULL);
+                    FILE *fp = fopen(req.filename, "w");
+                    fwrite(body_beg_ptr + 4, sizeof(char), bytes_recv - (offset + 4), fp);
+                    fclose(fp);
+
+                    if (fork() == 0)
+                    {
+                        close(sockfd);
+                        if (!strcmp(req.extension, ".html"))
+                            execlp("/usr/bin/firefox", "firefox", req.filename, NULL);
+                        else if (!strcmp(req.extension, ".jpg"))
+                            execlp("/usr/bin/shotwell", "shotwell", req.filename, NULL);
+                        else if (!strcmp(req.extension, ".pdf"))
+                            execlp("/usr/bin/xdg-open", "xdg-open", req.filename, NULL);
+                        else
+                            execlp("/usr/bin/gedit", "gedit", req.filename, NULL);
+                    }
+                    wait(NULL); // wait for child process to finish
                 }
-                wait(NULL); // wait for child process to finish
+                else
+                    print_status_msgs(status_code);
             }
 
             else if (!strcmp(req.cmd, "PUT"))
