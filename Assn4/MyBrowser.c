@@ -217,8 +217,15 @@ int main()
 
         Message req = parse_request(input);
         char *request = (char *)malloc(MAX_SIZE * sizeof(char));
-
-        sprintf(request, "%s %s HTTP/1.1", req.cmd, req.url);
+        if (!strcmp(req.cmd, "GET"))
+            sprintf(request, "%s %s HTTP/1.1", req.cmd, req.url);
+        else if (!strcmp(req.cmd, "PUT"))
+        {
+            if (req.url[strlen(req.url) - 1] == '/')
+                sprintf(request, "%s %s%s HTTP/1.1", req.cmd, req.url, req.filename);
+            else
+                sprintf(request, "%s %s/%s HTTP/1.1", req.cmd, req.url, req.filename);
+        }
         strcat(request, "\r\nHost: ");
         strcat(request, req.host);
         strcat(request, "\r\nConnection: close");
