@@ -180,15 +180,30 @@ int recv_request(int newsockfd, char *request){
     return 0;
 }
 
-int parse_request(char *request, Message *msg){
+int parse_request(char *request, Message *msg, char *msg_body){
 
     int cmd_flag = 0, accept_type_flag = 0, conn_type_flag = 0, host_flag = 0;
  
     char **tokens = (char **)malloc(10*sizeof(char *));
 
+    msg_body = strstr(request, "\r\n\r\n");
+
     // first tokenise the indivdual headers
     char *temp = strtok(request, "\r\n");
     int i = 0;
+
+    // int cmd_flag = 0, accept_type_flag = 0, conn_type_flag = 0, host_flag = 0;
+ 
+    // // tokenise first based on \r\n\r\n
+    // // char *request = strtok(input, "\r\n\r\n");
+    // char *msg_body = strstr(input, "\r\n\r\n");
+
+
+    // char **tokens = (char **)malloc(10*sizeof(char *));
+
+    // // first tokenise the indivdual headers
+    // char *temp = strtok(request, "\r\n");
+    // int i = 0;
 
     if (temp == NULL){ // headers are not properly seperated by \r\n since not a single token is found after tokenising by \r\n
         printf("The headers are not properly formatted.\n");
@@ -298,7 +313,7 @@ int parse_request(char *request, Message *msg){
             char *token = strtok(tokens[j], " ");
             token = strtok(NULL, " ");
             msg->content_len = atoi(token);
-            printf("Content length: %ld\n", msg->content_len);
+            printf("Content length: %lld\n", msg->content_len);
         }
 
         else if ( strstr(tokens[j], "Content-Type") != NULL){
@@ -430,8 +445,9 @@ int main(){
 
             char *response = (char *)malloc(MAX_SIZE*sizeof(char));
             int curr_resp_size = MAX_SIZE;
+            char *file_content = (char *)malloc(MAX_SIZE*sizeof(char));
 
-            int res = parse_request(request, msg);
+            int res = parse_request(request, msg, file_content);
             
             int offset = 0, file_len = 0;
             if (res == -1){
