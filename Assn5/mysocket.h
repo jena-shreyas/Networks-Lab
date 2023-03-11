@@ -9,9 +9,22 @@
 #include <netdb.h>
 #include <errno.h>
 #include <pthread.h>
+#include <signal.h>
 
+#define MAX_SEND_SIZE 1000
 #define MAX_MESSAGE_SIZE 5000
 #define SOCK_MyTCP SOCK_STREAM
+
+typedef struct myTCP{
+
+    int sockfd;
+    pthread_t R;
+    pthread_t S;
+    char **Send_Message;
+    char **Received_Message;
+}MyTCP;
+
+MyTCP mysocket;
 
 int my_socket(int domain, int type, int protocol);
 int my_bind(int sockfd, const struct sockaddr *addr, socklen_t addrlen);
@@ -21,3 +34,6 @@ int my_connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen);
 int my_close(int sockfd);
 int my_send(int sockfd, const void *buf, size_t len, int flags);
 int my_recv(int sockfd, void *buf, size_t len, int flags);
+
+void* send_message(void* sockfd);
+void* recv_message(void* sockfd);

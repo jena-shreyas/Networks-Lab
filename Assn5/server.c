@@ -36,11 +36,6 @@ int main(){
         }
 
         printf("SOCKET WORKING!\n");
-        
-        if (my_close(newsockfd) < 0) {
-            perror("Unable to close new socket!\n");
-            exit(EXIT_FAILURE);
-        }
     }
 
     if (my_close(sockfd) < 0) {

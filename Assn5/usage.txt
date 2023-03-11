@@ -1,0 +1,6 @@
+Run : 
+
+make server
+make client
+Then run ./server and ./client in separate terminals.
+Finally, run make clean.

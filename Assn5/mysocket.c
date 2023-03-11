@@ -1,14 +1,55 @@
 #include "mysocket.h"
 
+// function to handle SIGINT
+void sigint_handler(int signum)
+{
+    printf("SIGINT received!\n");
+    if (my_close(mysocket.sockfd) < 0) {
+        perror("Unable to close socket!\n");
+        exit(EXIT_FAILURE);
+    }
+    exit(EXIT_SUCCESS);
+}
+
+void* send_message(void* sockfd){
+    printf("Sending message ...\n");
+    return 0;
+}
+
+void* recv_message(void* sockfd){
+    printf("Receiving message ...\n");
+    return 0;
+}
+
 int my_socket(int domain, int type, int protocol)
 {
-    int sockfd;
+    // register SIGINT handler
+    signal(SIGINT, sigint_handler);
+    memset(&mysocket, 0, sizeof(mysocket));
     if (type == SOCK_MyTCP){
 
-        if ((sockfd = socket(domain, SOCK_STREAM, protocol)) < 0) {
+        if ((mysocket.sockfd = socket(domain, SOCK_STREAM, protocol)) < 0) {
             perror("Cannot create the socket!\n");
+            return mysocket.sockfd;
         }   
-        return sockfd;
+
+        // create threads
+        printf("Creating threads ...\n");
+        pthread_create(&mysocket.R, NULL, recv_message, &(mysocket.sockfd));
+        pthread_create(&mysocket.S, NULL, send_message, &(mysocket.sockfd));
+
+        // initialize and allocate memory for send and receive buffers
+        printf("Initializing buffers ...\n");
+        int num_messages = MAX_MESSAGE_SIZE/MAX_SEND_SIZE;
+        mysocket.Send_Message = (char **)malloc(num_messages * sizeof(char *));
+        mysocket.Received_Message = (char **)malloc(num_messages * sizeof(char *));
+
+        for (int i = 0; i < num_messages; i++) {
+            mysocket.Send_Message[i] = (char *)malloc(MAX_SEND_SIZE * sizeof(char));
+            mysocket.Received_Message[i] = (char *)malloc(MAX_SEND_SIZE * sizeof(char));
+        }
+
+        return mysocket.sockfd;
     }
 
     else {
@@ -69,5 +110,31 @@ int my_close(int sockfd)
     if ((close_status = close(sockfd)) < 0) {
         perror("Unable to close socket!\n");
     }
+
+    /*
+        clear contents of mysocket
+        this also deletes the sockfd stored in it
+        done because at the end, this fd will be the last one to refer to the actual socket
+        so it should be closed
+    */
+
+    // join threads
+    printf("Joining threads ...\n");
+    pthread_join(mysocket.R, NULL);
+    pthread_join(mysocket.S, NULL);
+
+    // free buffers
+    printf("Freeing buffers ...\n");
+    int num_messages = MAX_MESSAGE_SIZE/MAX_SEND_SIZE;
+    for (int i = 0; i < num_messages; i++) {
+        free(mysocket.Send_Message[i]);
+        free(mysocket.Received_Message[i]);
+    }
+    free(mysocket.Send_Message);
+    free(mysocket.Received_Message);
+
+    // clear mysocket
+    printf("Clearing mysocket ...\n");
+    memset(&mysocket, 0, sizeof(mysocket));         
     return close_status;
 }
