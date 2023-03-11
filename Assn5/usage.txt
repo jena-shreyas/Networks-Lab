@@ -4,3 +4,6 @@ make server
 make client
 Then run ./server and ./client in separate terminals.
 Finally, run make clean.
+
+ONE ISSUE :
+Acc. to assumption that calling program will always run one socket, considering sockfd is closed at the end of the program, what to do with newsockfd ? (NOTE THAT IT IS NOT CLOSED)
