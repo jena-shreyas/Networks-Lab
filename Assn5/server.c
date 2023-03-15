@@ -27,21 +27,74 @@ int main(){
         exit(EXIT_FAILURE);
     }
 
-    while (1){
+    printf("SOCKET LISTENING!\n");
 
-        clilen = sizeof(cliaddr);
-        if ((newsockfd = my_accept(sockfd, (struct sockaddr*)&cliaddr, &clilen)) < 0) {
-            perror("Unable to accept connection!\n");
-            exit(EXIT_FAILURE);
-        }
-
-        printf("SOCKET WORKING!\n");
+    clilen = sizeof(cliaddr);
+    if ((newsockfd = my_accept(sockfd, (struct sockaddr*)&cliaddr, &clilen)) < 0) {
+        perror("Unable to accept connection!\n");
+        exit(EXIT_FAILURE);
     }
+
+    printf("Connected to a client!\n");
+
+    char buffer[MAX_MESSAGE_SIZE];
+    memset(buffer, 0, MAX_MESSAGE_SIZE);
+
+    size_t len = 0;
+
+    if ( (len = my_recv(sockfd, buffer, MAX_MESSAGE_SIZE, 0)) < 0) {
+        perror("Unable to receive message! hi\n");
+        exit(EXIT_FAILURE);
+    }
+
+    printf("Message received from client: %s\n", buffer);
+    printf("Message length: %ld\n", len);
+    printf("Message:\n");
+    for (int i = 0; i < len; i++) {
+        printf("%c", buffer[i]);
+    }
+    printf("\n");
+
+    // while (1){
+
+    //     clilen = sizeof(cliaddr);
+    //     if ((newsockfd = my_accept(sockfd, (struct sockaddr*)&cliaddr, &clilen)) < 0) {
+    //         perror("Unable to accept connection!\n");
+    //         exit(EXIT_FAILURE);
+    //     }
+
+
+    //     printf("SOCKET WORKING!\n");
+
+    //     char buffer[MAX_MESSAGE_SIZE];
+    //     memset(buffer, 0, MAX_MESSAGE_SIZE);
+
+    //     size_t len = 0;
+
+    //     if ( (len = my_recv(newsockfd, buffer, MAX_MESSAGE_SIZE, 0)) < 0) {
+    //         perror("Unable to receive message! hi\n");
+    //         exit(EXIT_FAILURE);
+    //     }
+
+    //     printf("Message received from client: %s\n", buffer);
+    //     printf("Message length: %ld\n", len);
+    //     printf("Message:\n");
+    //     for (int i = 0; i < len; i++) {
+    //         printf("%c", buffer[i]);
+    //     }
+    //     printf("\n");
+
+    //     if (my_close(newsockfd) < 0) {
+    //         perror("Unable to close socket!\n");
+    //         exit(EXIT_FAILURE);
+    //     }
+
+    // }
 
     if (my_close(sockfd) < 0) {
             perror("Unable to close socket!\n");
             exit(EXIT_FAILURE);
-        }
+    }
 
     return 0;
 }
