@@ -268,7 +268,7 @@ void* recv_message(void* sockfd){
         while(1){
 
             bytes_recv = recv(recv_sock, recv_buffer + total_bytes_recv, MAX_MESSAGE_SIZE + 4 - total_bytes_recv, 0);
-            printf("[ Recv Thread ]: Bytes received = %d\n", bytes_recv);
+            // printf("[ Recv Thread ]: Bytes received = %d\n", bytes_recv);
             if (bytes_recv < 0){
                 perror("[ Recv Thread ] Unable to receive a message!\n");
                 exit(EXIT_FAILURE);
@@ -369,9 +369,9 @@ int my_recv(int sockfd, void *buf, size_t len, int flags)
             // pthread_mutex_unlock(&stdout_mutex);
             
             if (length > len){
-                printf("[my_recv]: Message length is greater than the buffer length!\n");
-                printf("[my_recv]: Message length = %ld, Buffer length = %ld\n", length, len);
-                printf("[my_recv]: Truncating the message to fit the buffer!\n");
+                // printf("[my_recv]: Message length is greater than the buffer length!\n");
+                // printf("[my_recv]: Message length = %ld, Buffer length = %ld\n", length, len);
+                // printf("[my_recv]: Truncating the message to fit the buffer!\n");
                 length = len;
             }
 

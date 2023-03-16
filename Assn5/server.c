@@ -62,7 +62,7 @@ int main(){
     //     memset(buffer, 0, MAX_MESSAGE_SIZE);
     // }
 
-    if ((len = my_recv(newsockfd, buffer, 5000, 0)) < 0) {
+    if ((len = my_recv(newsockfd, buffer, 4105, 0)) < 0) {
             perror("Unable to receive message!\n");
             exit(EXIT_FAILURE);
         }

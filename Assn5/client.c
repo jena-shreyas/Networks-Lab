@@ -29,10 +29,26 @@ int main(){
     // ACTUAL
     // copy a random string of size 4000 into buffer
     for (int i = 0; i < 5000; i++) {
-        if (i % 2 == 0) 
+        if (i % 10 == 0) 
             buffer[i] = 'a';
-        else    
+        else if (i %10 == 1)
             buffer[i] = 'b';
+        else if (i %10 == 2)
+            buffer[i] = 'c';
+        else if (i %10 == 3)
+            buffer[i] = 'd';
+        else if (i %10 == 4)
+            buffer[i] = 'e';
+        else if (i %10 == 5)
+            buffer[i] = 'f';
+        else if (i %10 == 6)
+            buffer[i] = 'g';
+        else if (i %10 == 7)
+            buffer[i] = 'h';
+        else if (i %10 == 8)
+            buffer[i] = 'i';
+        else if (i %10 == 9)
+            buffer[i] = 'j';
     }
 
     // sending 15 messages for testing
