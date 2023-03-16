@@ -1,0 +1,97 @@
+NETWORKS LAB (ASSIGNMENT 5)
+DOCUMENTATION
+
+MEMBERS : 
+
+1. Pranav Nyati (20CS30037)
+2. Shreyas Jena (20CS30049)
+
+
+DATA STRUCTURES :
+
+1) message (struct):    [Represents an entry in the tables that can store a message]
+
+Fields : 
+
+- size_t length (Length of message)
+- char *data (Message content)
+- int flag (Flag to check whether given entry is vacant or not)
+
+
+
+2) data_table (struct): [Represents a table that can store messages]
+
+Fields : 
+
+- int num_entries   (Max number of entries in the table)
+- message *messages     (Array of messages)
+- int num_full   (Number of messages in the table)
+
+
+
+3) MyTCP (struct):  [Represents a message-oriented TCP socket]
+
+- int sockfd    (Socket file descriptor)
+- pthread_t R   (Thread ID for the receiver thread)
+- pthread_t S   (Thread ID for the sender thread)
+- data_table *send_message  (Table to store messages to be sent)
+- data_table *recv_message  (Table to store messages received)
+
+
+
+
+FUNCTIONS :
+
+1) void sigint_handler(int signum): 
+
+- This function is called when the user presses Ctrl+C.
+- It clears the buffers, cancels the threads and closes the socket.
+
+2) int min_val (int a, int b):
+
+- Returns the minimum of two integers.
+
+3) int send_in_chunks(int sock_fd,  char* data, size_t length):
+
+- This function sends the data in chunks of size 1000 bytes.
+
+4) int my_socket(int domain, int type, int protocol):
+
+- Function to create a new TCP socket, create the data tables and start the R and S threads.
+
+5) int my_bind(int sockfd, const struct sockaddr *addr, socklen_t addrlen):
+
+- Function to bind the socket to the given address.
+
+6) int my_listen(int sockfd, int backlog):
+
+- Function to listen for incoming connections.
+
+7) int my_accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen):
+
+- Function to accept an incoming connection.
+
+8) int my_connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen):
+
+- Function to connect to a remote server socket.
+
+9) int my_close(int sockfd):
+
+- Function to close the socket, cancel the threads and deallocate the tables.
+
+10) int my_send(int sockfd, const void *buf, size_t len, int flags):
+
+- Function to add the message to be sent to the Send_Message table, to be actually sent later by the S thread.
+
+11) int my_recv(int sockfd, void *buf, size_t len, int flags):
+
+- Function to retrieve the received message from the Recv_Message table, which was actually collected by the R thread.
+
+12) void* send_message(void* sockfd):
+
+- Thread runner function to send the messages in the Send_Message table, using multiple TCP send() calls. 
+- Uses send_in_chunks() function to send in chunks of 1000 bytes.
+
+13) void* recv_message(void* sockfd):
+
+- Thread runner function to receive the messages from the MyTCP socket, and store them in the Recv_Message table.
