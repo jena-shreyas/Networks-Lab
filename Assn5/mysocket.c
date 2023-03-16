@@ -368,8 +368,15 @@ int my_recv(int sockfd, void *buf, size_t len, int flags)
             // printf("[my_recv]: Client Message: %s\n\n", mysocket.recv_message->messages[i].data);
             // pthread_mutex_unlock(&stdout_mutex);
             
+            if (length > len){
+                printf("[my_recv]: Message length is greater than the buffer length!\n");
+                printf("[my_recv]: Message length = %ld, Buffer length = %ld\n", length, len);
+                printf("[my_recv]: Truncating the message to fit the buffer!\n");
+                length = len;
+            }
+
             // copy the message to the buffer
-            for (int j = 0; j < mysocket.recv_message->messages[i].length; j++){
+            for (int j = 0; j < length; j++){
                 ((char *)buf)[j] = mysocket.recv_message->messages[i].data[j];
             }
 
