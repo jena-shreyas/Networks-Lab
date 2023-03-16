@@ -34,8 +34,29 @@ int main(){
     printf("Sending message...\n");
     len = my_send(sockfd, buffer, 4000, 0);
     
+    memset(buffer, 0, MAX_MESSAGE_SIZE);
     
-        
+    // size_t len = 0;
+
+    if ( (len = my_recv(sockfd, buffer, MAX_MESSAGE_SIZE, 0)) < 0) {
+        perror("Unable to receive message!!\n");
+        if (my_close(sockfd) < 0) {
+            perror("Unable to close socket!\n");
+            exit(EXIT_FAILURE);
+        }
+        exit(EXIT_FAILURE);
+    }
+    
+    printf("Message received from the server!\n");
+    printf("Message length: %ld\n", len);
+    printf("Message:\n");
+    for (int i = 0; i < len; i++) {
+        printf("%c", buffer[i]);
+    }
+    printf("\n");
+
+
+
     if (my_close(sockfd) < 0) {
         perror("Unable to close socket!\n");
         exit(EXIT_FAILURE);

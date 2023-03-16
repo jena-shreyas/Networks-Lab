@@ -1,4 +1,5 @@
 #include "mysocket.h"
+#include<time.h>
 
 int main(){
 
@@ -42,18 +43,31 @@ int main(){
 
     size_t len = 0;
 
-    if ( (len = my_recv(sockfd, buffer, MAX_MESSAGE_SIZE, 0)) < 0) {
+    if ( (len = my_recv(newsockfd, buffer, MAX_MESSAGE_SIZE, 0)) < 0) {
         perror("Unable to receive message! hi\n");
         exit(EXIT_FAILURE);
     }
 
-    printf("Message received from client: %s\n", buffer);
+    printf("Message received from client!\n");
     printf("Message length: %ld\n", len);
     printf("Message:\n");
     for (int i = 0; i < len; i++) {
         printf("%c", buffer[i]);
     }
     printf("\n");
+
+    time_t t = time(NULL);
+    struct tm* local_time = localtime(&t);
+
+    memset(buffer, 0, MAX_MESSAGE_SIZE);
+
+    char *buf;
+    buf = asctime(local_time);
+    printf("%s", buf);
+
+    printf("Sending message...\n");
+    len = my_send(newsockfd, buf, strlen(buf), 0);
+
 
     // while (1){
 
