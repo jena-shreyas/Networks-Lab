@@ -70,7 +70,7 @@ int send_in_chunks(int sock_fd,  char* data, size_t length){
     while (total_bytes < length + 4){
         // printf("send in chunks: total_bytes = %d\n", total_bytes);
         if ( (bytes_sent = send(sock_fd, str + total_bytes, min_val(MAX_SEND_SIZE, length + 4 - total_bytes), 0) ) != min_val(MAX_SEND_SIZE, length + 4 - total_bytes)){
-            // printf("send in chunks: bytes_sent = %d\n", bytes_sent);
+            printf("send in chunks: bytes_sent = %d\n", bytes_sent);
             perror("Unable to send message!\n");
             return -1;
         }
@@ -268,7 +268,7 @@ void* recv_message(void* sockfd){
         while(1){
 
             bytes_recv = recv(recv_sock, recv_buffer + total_bytes_recv, MAX_MESSAGE_SIZE + 4 - total_bytes_recv, 0);
-            // printf("[ Recv Thread ]: Bytes received = %d\n", bytes_recv);
+            printf("[ Recv Thread ]: Bytes received = %d\n", bytes_recv);
             if (bytes_recv < 0){
                 perror("[ Recv Thread ] Unable to receive a message!\n");
                 exit(EXIT_FAILURE);

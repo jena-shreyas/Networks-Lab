@@ -26,13 +26,31 @@ int main(){
     memset(buffer, 0, MAX_MESSAGE_SIZE);
     size_t len = 0;
 
+    // ACTUAL
     // copy a random string of size 4000 into buffer
-    for (int i = 0; i < 4000; i++) {
-        buffer[i] = 'a';
+    for (int i = 0; i < 5000; i++) {
+        if (i % 2 == 0) 
+            buffer[i] = 'a';
+        else    
+            buffer[i] = 'b';
     }
 
+    // sending 15 messages for testing
+    // printf("Sending 15 messages...\n");
+    // for (int i = 0; i < 15; i++) {
+        
+    //     char ch = 'a' + i;
+    //     for (int j = 0; j < 50; j++) {
+    //         buffer[j] = ch;
+    //     }
+    //     len = my_send(sockfd, buffer, 50, 0);
+        
+    //     memset(buffer, 0, MAX_MESSAGE_SIZE);
+    // }
+
+    // ACTUAL
     printf("Sending message...\n");
-    len = my_send(sockfd, buffer, 4000, 0);
+    len = my_send(sockfd, buffer, 5000, 0);
     
     memset(buffer, 0, MAX_MESSAGE_SIZE);
     
