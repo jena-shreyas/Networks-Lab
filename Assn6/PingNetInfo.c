@@ -182,6 +182,9 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         
     }
 
+    // Clear the buffer
+    memset(buf, 0, BUF_SIZE);
+
     // Receive the packet
     struct sockaddr_in addr;
     socklen_t addr_len = sizeof(addr);
@@ -194,8 +197,32 @@ int main(int argc, char *argv[])
 
     // Print the packet
     printf("Packet received from %s\n", inet_ntoa(addr.sin_addr));
+    
+    // Get the IP header from the packet
+    struct ip *ip_header = (struct ip*)buf;
+
+    // Print the IP header fields
+    printf("IP Header:\n");
+    printf("Version: %d\n", ip_header->ip_v);
+    printf("Header Length: %d\n", ip_header->ip_hl);
+    printf("Type of Service: %d\n", ip_header->ip_tos);
+    printf("Total Length: %d\n", ntohs(ip_header->ip_len));
+    printf("Identification: %d\n", ntohs(ip_header->ip_id));
+    printf("Fragment Offset: %d\n", ntohs(ip_header->ip_off));
+    printf("Time to Live: %d\n", ip_header->ip_ttl);
+    printf("Protocol: %d\n", ip_header->ip_p);
+    printf("Header Checksum: %d\n", ntohs(ip_header->ip_sum));
+    // printf("Source IP Address: %s\n", inet_ntoa(*(struct in_addr *)&ip_header->ip_src.));
+    // printf("Destination IP Address: %s\n", inet_ntoa(*(struct in_addr *)&ip_header->daddr));
+
+    struct icmp* icmp_hdr = (struct icmp*) (buf + sizeof(struct ip));
+    printf("ICMP type: %d\n", icmp_hdr->icmp_type);
+    printf("ICMP code: %d\n", icmp_hdr->icmp_code);
+    printf("ICMP checksum: %d\n", icmp_hdr->icmp_cksum);
+
+    // Print the packet payload
     printf("Packet contents:\n");
-    printf("%s\n", buf);
+    printf("%s\n", buf + sizeof(struct ip) + sizeof(struct icmp));
 
     close(sockfd);
     return 0;
