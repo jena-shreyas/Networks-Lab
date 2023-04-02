@@ -28,47 +28,31 @@ int main(){
 
     // ACTUAL
     // copy a random string of size 4000 into buffer
-    for (int i = 0; i < 5000; i++) {
-        if (i % 10 == 0) 
-            buffer[i] = 'a';
-        else if (i %10 == 1)
-            buffer[i] = 'b';
-        else if (i %10 == 2)
-            buffer[i] = 'c';
-        else if (i %10 == 3)
-            buffer[i] = 'd';
-        else if (i %10 == 4)
-            buffer[i] = 'e';
-        else if (i %10 == 5)
-            buffer[i] = 'f';
-        else if (i %10 == 6)
-            buffer[i] = 'g';
-        else if (i %10 == 7)
-            buffer[i] = 'h';
-        else if (i %10 == 8)
-            buffer[i] = 'i';
-        else if (i %10 == 9)
-            buffer[i] = 'j';
-    }
-
-    // sending 15 messages for testing
-    // printf("Sending 15 messages...\n");
-    // for (int i = 0; i < 15; i++) {
-        
-    //     char ch = 'a' + i;
-    //     for (int j = 0; j < 50; j++) {
-    //         buffer[j] = ch;
-    //     }
-    //     len = my_send(sockfd, buffer, 50, 0);
-        
-    //     memset(buffer, 0, MAX_MESSAGE_SIZE);
+    // for (int i = 0; i < 5000; i++) {
+    //     if (i % 2 == 0) 
+    //         buffer[i] = 'a';
+    //     else    
+    //         buffer[i] = 'b';
     // }
 
+    // // sending 15 messages for testing
+    printf("Sending 15 messages...\n");
+    for (int i = 0; i < 15; i++) {
+        
+        char ch = 'a' + i;
+        for (int j = 0; j < 50; j++) {
+            buffer[j] = ch;
+        }
+        len = my_send(sockfd, buffer, 50, 0);
+        
+        memset(buffer, 0, MAX_MESSAGE_SIZE);
+    }
+
     // ACTUAL
-    printf("Sending message...\n");
-    len = my_send(sockfd, buffer, 5000, 0);
+    // printf("Sending message...\n");
+    // len = my_send(sockfd, buffer, 5000, 0);
     
-    memset(buffer, 0, MAX_MESSAGE_SIZE);
+    // memset(buffer, 0, MAX_MESSAGE_SIZE);
     
     // size_t len = 0;
 

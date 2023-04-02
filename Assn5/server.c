@@ -45,8 +45,9 @@ int main(){
 
     // SENDING MULTIPLE MESSAGES (TESTING)
     
-    // for (int i=0;i<15;i++){
+    for (int i=0;i<15;i++){
 
+<<<<<<< HEAD
     //     if ((len = my_recv(newsockfd, buffer, 5000, 0)) < 0) {
     //         perror("Unable to receive message!\n");
     //         exit(EXIT_FAILURE);
@@ -63,6 +64,9 @@ int main(){
     // }
 
     if ((len = my_recv(newsockfd, buffer, 4105, 0)) < 0) {
+=======
+        if ((len = my_recv(newsockfd, buffer, 5000, 0)) < 0) {
+>>>>>>> 6bafa66 (ICMP pkt w/o manual IP gives E)
             perror("Unable to receive message!\n");
             exit(EXIT_FAILURE);
         }
@@ -75,6 +79,22 @@ int main(){
         }
         printf("\n");
         memset(buffer, 0, MAX_MESSAGE_SIZE);
+    }
+
+    // // ACTUAL
+    // if ((len = my_recv(newsockfd, buffer, 5000, 0)) < 0) {
+    //         perror("Unable to receive message!\n");
+    //         exit(EXIT_FAILURE);
+    //     }
+
+    //     printf("Message received from client!\n");
+    //     printf("Message length: %ld\n", len);
+    //     printf("Message:\n");
+    //     for (int i = 0; i < len; i++) {
+    //         printf("%c", buffer[i]);
+    //     }
+    //     printf("\n");
+    //     memset(buffer, 0, MAX_MESSAGE_SIZE);
 
     time_t t = time(NULL);
     struct tm* local_time = localtime(&t);

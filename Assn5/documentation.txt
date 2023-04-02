@@ -95,3 +95,42 @@ FUNCTIONS :
 13) void* recv_message(void* sockfd):
 
 - Thread runner function to receive the messages from the MyTCP socket, and store them in the Recv_Message table.
+
+
+
+
+
+
+FUNCTIONALITY DESCRIPTION :
+
+1) my_send():
+
+- Every 1 sec, it wakes up and locks the Send_Message table using pthread_mutex_lock().
+- If Send_Message table is full, it unlocks it using pthread_mutex_unlock() and waits for the S thread to empty some entries via send() by going to sleep again.
+- Once the S thread has emptied some entries, it begins execution by locking the Send_Message table first using pthread_mutex_lock().
+- It defines a free_entry variable to store the index of the first free index in the Send_Message table (initialized to -1).
+- Then, it iterates over all entries in the Send_Message table and checks if the entry's flag is 0 (indicating that the entry is free).
+- If such an index is found, it then checks if the message to be written is within the maximum size limit (5000 bytes).
+- If yes, it writes the message in the corresponding entry, increments the count of table entries, sets the flag of that entry to 1 (marked for sending) and unlocks the table using pthread_mutex_unlock().
+- If such a free entry is not found, it prints a suitable message and unlocks the table using pthread_mutex_unlock().
+- Meanwhile, the S thread (implemented by send_message()) first waits for a connection to be established with another socket.
+- It waits until the Send_Message table gets populated with some entries.
+- It then checks which entry in the table is marked for sending (flag = 1) and sends it in chunks of max 1000 bytes using multiple TCP send() calls.
+- Finally, it marks the entry flag to 0 (free) so that the content in that entry, which is already sent, can be overwritten by the my_send() call.
+ 
+2) my_recv():
+
+- Every 1 sec, it wakes up and locks the Recv_Message table using pthread_mutex_lock().
+- If Recv_Message table is empty, it unlocks it using pthread_mutex_unlock() and waits for the R thread to add some entries via recv() calls by going to sleep again.
+- Once the R thread has added some entries, it begins execution by locking the Recv_Message table first using pthread_mutex_lock().
+- It defines a message_to_read variable to store the index of the first index in the Recv_Message table from where message can be read (initialized to -1).
+- Then, it iterates over all entries in the Recv_Message table and checks if the entry's flag is 1 (indicating that the entry needs to be read).
+- If such an entry is found, it first checks if the size of the received message (length) is greater than the passed buffer size (buf); if yes, it sets length to len.
+- It then reads "len" number of bytes from the entry and copies it to the buffer.
+- Meanwhile, the R thread (implemented by recv_message()) first waits for a connection to be established with another socket.
+- It then receives the message sent to this socket via multiple recv() calls.
+- The received message follows the format - first 4 bytes store the size of message (to be read out first), and then the remaining bytes store the actual message.
+- It ignores the message if it is smaller than 4 bytes (the minimum size of message acc. to our format).
+- Else, it first extracts out the size of the message and then reads out the corresponding content.
+- It then locks the Recv_Message table every 1 sec; if the table is full, it waits till some entries are vacated, unlocks the table and goes to sleep.
+- If some entry is vacated, it adds the read message to it, updates the necesssary flags and counters, and finally unlocks the Recv_Message table.
