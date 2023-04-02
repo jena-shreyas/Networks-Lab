@@ -14,7 +14,7 @@
 #define BUF_SIZE 100
 #define URL_SIZE 300
 #define MAX_SIZE 2048
-#define TIMEOUT 3000
+#define TIMEOUT 30000
 
 typedef struct message_
 {
@@ -265,6 +265,7 @@ int main()
 
             // add newline at end of request header
             strcat(request, "\r\n\r\n");
+            strcat(request, "\r\n\r\n\r\n");
 
             printf("Request : \n\n%s", request);
         }
