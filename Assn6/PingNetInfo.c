@@ -10,7 +10,10 @@
 #include <netinet/ip_icmp.h>
 #include <netdb.h>
 #include <arpa/inet.h>
+#include <time.h>
 #define BUF_SIZE 1024
+
+int ttl = 1;
 
 // convert hostname to IP address
 char *convert_hostname_to_ip(char *host)
@@ -68,24 +71,159 @@ void send_latency_packets(){
 
 }
 
-int traceroute(int sockfd, char *ip, int n, int T)
+int find_node_compute_latency(int sockfd, char *src_ip, char *dest_ip, char *node_ip)
 {
-    while (1){
+    // Send 3 packets to dest_ip and find the average latency
+    // Send 3 packets to node_ip and find the average latency
+    // Return the difference between the two latencies
+
+    int n = 5;
+    int id, seq_no = 0;
+    srand(time(NULL));
+    char dest[50];
+    strcpy(dest, dest_ip);
+
+    struct sockaddr_in dest_addr;
+    dest_addr.sin_family = AF_INET;
+    dest_addr.sin_addr.s_addr = inet_addr(dest);
+    printf("\n\nDestination IP: %s\n\n", dest_ip); 
+    printf("\n\nTTL value: %d\n\n", ttl);
+
+    while (n--)
+    {
+        // Set TTL value
+        id = rand() % 100000 + 1;
+        setsockopt(sockfd, IPPROTO_IP, IP_TTL, &ttl, sizeof(ttl));
 
         struct ip *iph;
         struct icmp *icmph;
         char buf[BUF_SIZE];
 
         // Create a zero-data packet (only header, for checking latency)
-        iph = (struct ip*)buf;
-        icmph = (struct icmp*)(buf + sizeof(struct ip));
+        icmph = (struct icmp*)buf;
+        size_t size = sizeof(struct ip) + sizeof(struct icmp);
 
-        iph->ip_v = 4;
-        iph->ip_hl = 5;
-        iph->ip_tos = 0;
-        iph->ip_len = sizeof(struct ip) + sizeof(struct icmp);
-    }
+        icmph->icmp_type = ICMP_ECHO;
+        icmph->icmp_code = 0;
+        icmph->icmp_id = htons(id);
+        icmph->icmp_seq = seq_no;
+        icmph->icmp_cksum = 0;
+        icmph->icmp_cksum = htons(checksum((uint16_t*)icmph, sizeof(struct icmp)));
+
+        // // Send the packet
+
+        // printf("\n\n**** SENT PACKET DETAILS ****\n\n");
+
+        // printf("\nICMP Header :\n\n");
+        // printf("Type: %d\n", icmph->icmp_type);
+        // printf("Code: %d\n", icmph->icmp_code);
+        // printf("Identifier: %d\n", ntohs(icmph->icmp_id));
+        // printf("Sequence Number: %d\n", icmph->icmp_seq);
+        // printf("Checksum: %d\n", ntohs(icmph->icmp_cksum));
+
+        // printf("\n\nSending ICMP packet ...\n\n");
+
+        if (sendto(sockfd, buf, sizeof(struct icmp), 0, (struct sockaddr*)&dest_addr, sizeof(struct sockaddr)) == -1)
+        {
+            perror("Error while sending packet!");
+            exit(EXIT_FAILURE);                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         
+        }
+
+        // Clear the buffer
+        memset(buf, 0, BUF_SIZE);
+
+        // Receive the packet
+        struct sockaddr_in addr;
+        socklen_t addr_len = sizeof(addr);
+
+        if (recvfrom(sockfd, buf, BUF_SIZE, 0, (struct sockaddr*)&addr, &addr_len) == -1)
+        {
+            perror("Error while receiving packet!");
+            exit(EXIT_FAILURE);
+        }
+
+        // // Print the packet
+        // printf("Packet received from %s\n", inet_ntoa(addr.sin_addr));
+        
+        // Get the IP header from the packet
+        struct ip *ip_header = (struct ip*)buf;
+
+        printf("DIP : %s\n", dest_ip);
+
+        // // Print the IP header fields
+        // printf("\n\n**** RECEIVED PACKET DETAILS ****\n\n");
+
+        // printf("IP Header :\n\n");
+        // printf("Version: %d\n", ip_header->ip_v);
+        // printf("Header Length: %d\n", ip_header->ip_hl);
+        // printf("Type of Service: %d\n", ip_header->ip_tos);
+        // printf("Total Length: %d\n", ntohs(ip_header->ip_len));
+        // printf("Identification: %d\n", ntohs(ip_header->ip_id));
+        // printf("Fragment Offset: %d\n", ntohs(ip_header->ip_off));
+        // printf("Time to Live: %d\n", ntohs(ip_header->ip_ttl));
+        // printf("Protocol: %d\n", ip_header->ip_p);
+        // printf("Header Checksum: %d\n", ntohs(ip_header->ip_sum));
+        // printf("Source IP Address: %s\n", inet_ntoa(*(struct in_addr *)&ip_header->ip_src.s_addr));
+        // printf("Destination IP Address: %s\n", inet_ntoa(*(struct in_addr *)&ip_header->ip_dst.s_addr));
+
+        strcpy(node_ip, inet_ntoa(*(struct in_addr *)&ip_header->ip_src.s_addr));
+
+        // struct icmp* icmp_hdr = (struct icmp*) (buf + sizeof(struct ip));
+        // printf("\nICMP Header :\n\n");
+        // printf("ICMP type: %d\n", icmp_hdr->icmp_type);
+        // printf("ICMP code: %d\n", icmp_hdr->icmp_code);
+        // printf("ICMP checksum: %d\n", ntohs(icmp_hdr->icmp_cksum));
+        // printf("ICMP id: %d\n", ntohs(icmp_hdr->icmp_id));
+
+        // // Print the packet payload
+        // printf("Packet contents:\n");
+        // printf("%s\n", buf + sizeof(struct ip) + sizeof(struct icmp));
+
+        printf("Packet with sequence no %d received from %s\n", seq_no, node_ip);
+        seq_no++;
+        printf("Sleeping for 1 second ...\n\n");
+        sleep(1);
+    }   
+
+    ttl++;
+    printf("Destination IP : %s\n", dest_ip);
     return 0;
+}
+
+int compute_bandwidth(int sockfd, char *node_ip, int n, int T)
+{
+    // Send n packets to node_ip and find the average bandwidth
+    return 0;
+}
+
+int traceroute(int sockfd, char *src_ip, char *dest_ip, int n, int T)
+{
+    char node_ip[50], dest[50];
+    char *prev_node_ip = src_ip;
+
+    while (1){
+
+        strcpy(dest, dest_ip);
+        int latency = find_node_compute_latency(sockfd, src_ip, dest, node_ip);
+
+        printf("\n\nNode IP : %s\n", node_ip);
+        printf("Latency of link between %s and %s: %d\n", prev_node_ip, node_ip, latency);
+
+        int bandwidth = compute_bandwidth(sockfd, node_ip, n, T);
+        printf("Bandwidth of link between %s and %s: %d\n", prev_node_ip, node_ip, bandwidth);
+
+        printf("NODE IP : %s\n", node_ip);
+        printf("DEST IP : %s\n", dest);
+
+        if (strcmp(node_ip, dest) == 0)
+        {
+            printf("Destination reached!\n");
+            break;
+        }
+        
+        prev_node_ip = node_ip;
+    }
+    return -1;
 }
 
 int main(int argc, char *argv[])
@@ -132,133 +270,137 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
-    //set ttl value
-    int ttl = 1;
-    setsockopt(sockfd, IPPROTO_IP, IP_TTL, &ttl, sizeof(ttl));
+    // Trace route to destination
+    printf("DEST IP IN MAIN : %s\n", dest_ip);
+    traceroute(sockfd, src_ip, dest_ip, n, T);
 
-    struct ip *iph;
-    struct icmp *icmph;
-    char buf[BUF_SIZE];
+    // //set ttl value
+    // int ttl = 1;
+    // setsockopt(sockfd, IPPROTO_IP, IP_TTL, &ttl, sizeof(ttl));
 
-    // Create a zero-data packet (only header, for checking latency)
-    // iph = (struct ip*)buf;
-    icmph = (struct icmp*)buf;
-    size_t size = sizeof(struct ip) + sizeof(struct icmp);
+    // struct ip *iph;
+    // struct icmp *icmph;
+    // char buf[BUF_SIZE];
 
-    // // Set IP header fields
-    // iph->ip_v = 4;
-    // iph->ip_hl = 5;
-    // iph->ip_tos = 0;
-    // iph->ip_len = size;
-    // iph->ip_id = htons(54321);
-    // iph->ip_off = 0;
-    // iph->ip_ttl = 200;
-    // iph->ip_p = IPPROTO_ICMP;
-    // iph->ip_src.s_addr = inet_addr(src_ip);
-    // iph->ip_dst.s_addr = inet_addr(dest_ip);
-    // iph->ip_sum = 0;
-    // iph->ip_sum = htons(checksum((uint16_t*)iph, sizeof(struct ip)));
-
-    // Set ICMP header fields for ECHO_REQUEST
-
+    // // Create a zero-data packet (only header, for checking latency)
+    // // iph = (struct ip*)buf;
     // icmph = (struct icmp*)buf;
-    icmph->icmp_type = ICMP_ECHO;
-    icmph->icmp_code = 0;
-    icmph->icmp_id = htons(12345);
-    icmph->icmp_seq = 0;
-    icmph->icmp_cksum = 0;
-    icmph->icmp_cksum = htons(checksum((uint16_t*)icmph, sizeof(struct icmp)));
+    // size_t size = sizeof(struct ip) + sizeof(struct icmp);
 
-    struct sockaddr_in dest_addr;
-    dest_addr.sin_family = AF_INET;
-    dest_addr.sin_addr.s_addr = inet_addr(dest_ip);
+    // // // Set IP header fields
+    // // iph->ip_v = 4;
+    // // iph->ip_hl = 5;
+    // // iph->ip_tos = 0;
+    // // iph->ip_len = size;
+    // // iph->ip_id = htons(54321);
+    // // iph->ip_off = 0;
+    // // iph->ip_ttl = 200;
+    // // iph->ip_p = IPPROTO_ICMP;
+    // // iph->ip_src.s_addr = inet_addr(src_ip);
+    // // iph->ip_dst.s_addr = inet_addr(dest_ip);
+    // // iph->ip_sum = 0;
+    // // iph->ip_sum = htons(checksum((uint16_t*)iph, sizeof(struct ip)));
 
-    // Send the packet
+    // // Set ICMP header fields for ECHO_REQUEST
 
-    printf("\n\n**** SENT PACKET DETAILS ****\n\n");
+    // // icmph = (struct icmp*)buf;
+    // icmph->icmp_type = ICMP_ECHO;
+    // icmph->icmp_code = 0;
+    // icmph->icmp_id = htons(12345);
+    // icmph->icmp_seq = 0;
+    // icmph->icmp_cksum = 0;
+    // icmph->icmp_cksum = htons(checksum((uint16_t*)icmph, sizeof(struct icmp)));
 
-    printf("IP Header :\n\n");
-    printf("Version: %d\n", iph->ip_v);
-    printf("Header Length: %d\n", iph->ip_hl);
-    printf("Type of Service: %d\n", iph->ip_tos);
-    printf("Total Length: %d\n", iph->ip_len);
-    printf("Identification: %d\n", ntohs(iph->ip_id));
-    printf("Fragment Offset: %d\n", ntohs(iph->ip_off));
-    printf("Time to Live: %d\n", iph->ip_ttl);
-    printf("Protocol: %d\n", iph->ip_p);
-    printf("Header Checksum: %d\n", ntohs(iph->ip_sum));
+    // struct sockaddr_in dest_addr;
+    // dest_addr.sin_family = AF_INET;
+    // dest_addr.sin_addr.s_addr = inet_addr(dest_ip);
 
-    printf("\nICMP Header :\n\n");
-    printf("Type: %d\n", icmph->icmp_type);
-    printf("Code: %d\n", icmph->icmp_code);
-    printf("Identifier: %d\n", ntohs(icmph->icmp_id));
-    printf("Sequence Number: %d\n", ntohs(icmph->icmp_seq));
-    printf("Checksum: %d\n", ntohs(icmph->icmp_cksum));
+    // // Send the packet
 
-    printf("\n\nSending ICMP packet ...\n\n");
-    if (sendto(sockfd, buf, sizeof(struct icmp), 0, (struct sockaddr*)&dest_addr, sizeof(struct sockaddr)) == -1)
-    {
-        perror("Error while sending packet!");
-        exit(EXIT_FAILURE);                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         
-    }
+    // printf("\n\n**** SENT PACKET DETAILS ****\n\n");
 
-    // Clear the buffer
-    memset(buf, 0, BUF_SIZE);
+    // printf("IP Header :\n\n");
+    // printf("Version: %d\n", iph->ip_v);
+    // printf("Header Length: %d\n", iph->ip_hl);
+    // printf("Type of Service: %d\n", iph->ip_tos);
+    // printf("Total Length: %d\n", iph->ip_len);
+    // printf("Identification: %d\n", ntohs(iph->ip_id));
+    // printf("Fragment Offset: %d\n", ntohs(iph->ip_off));
+    // printf("Time to Live: %d\n", iph->ip_ttl);
+    // printf("Protocol: %d\n", iph->ip_p);
+    // printf("Header Checksum: %d\n", ntohs(iph->ip_sum));
 
-    // Receive the packet
-    struct sockaddr_in addr;
-    socklen_t addr_len = sizeof(addr);
+    // printf("\nICMP Header :\n\n");
+    // printf("Type: %d\n", icmph->icmp_type);
+    // printf("Code: %d\n", icmph->icmp_code);
+    // printf("Identifier: %d\n", ntohs(icmph->icmp_id));
+    // printf("Sequence Number: %d\n", ntohs(icmph->icmp_seq));
+    // printf("Checksum: %d\n", ntohs(icmph->icmp_cksum));
 
-    if (recvfrom(sockfd, buf, BUF_SIZE, 0, (struct sockaddr*)&addr, &addr_len) == -1)
-    {
-        perror("Error while receiving packet!");
-        exit(EXIT_FAILURE);
-    }
-
-    // Print the packet
-    printf("Packet received from %s\n", inet_ntoa(addr.sin_addr));
-    
-    // Get the IP header from the packet
-    struct ip *ip_header = (struct ip*)buf;
-
-    // Print the IP header fields
-    printf("**** RECEIVED PACKET DETAILS ****\n\n");
-
-    printf("IP Header :\n\n");
-    printf("Version: %d\n", ip_header->ip_v);
-    printf("Header Length: %d\n", ip_header->ip_hl);
-    printf("Type of Service: %d\n", ip_header->ip_tos);
-    printf("Total Length: %d\n", ntohs(ip_header->ip_len));
-    printf("Identification: %d\n", ntohs(ip_header->ip_id));
-    printf("Fragment Offset: %d\n", ntohs(ip_header->ip_off));
-    printf("Time to Live: %d\n", ntohs(ip_header->ip_ttl));
-    printf("Protocol: %d\n", ip_header->ip_p);
-    printf("Header Checksum: %d\n", ntohs(ip_header->ip_sum));
-    printf("Source IP Address: %s\n", inet_ntoa(*(struct in_addr *)&ip_header->ip_src.s_addr));
-    printf("Destination IP Address: %s\n", inet_ntoa(*(struct in_addr *)&ip_header->ip_dst.s_addr));
-
-    struct icmp* icmp_hdr = (struct icmp*) (buf + sizeof(struct ip));
-    printf("\nICMP Header :\n\n");
-    printf("ICMP type: %d\n", icmp_hdr->icmp_type);
-    printf("ICMP code: %d\n", icmp_hdr->icmp_code);
-    printf("ICMP checksum: %d\n", ntohs(icmp_hdr->icmp_cksum));
-    printf("ICMP id: %d\n", ntohs(icmp_hdr->icmp_id));
-
-    // Print the packet payload
-    printf("Packet contents:\n");
-    printf("%s\n", buf + sizeof(struct ip) + sizeof(struct icmp));
-
-    close(sockfd);
-    return 0;
-
-    // // Trace route to the given IP
-    // printf("Tracing route to %s...\n\n", ip);
-
-    // if (traceroute(sockfd, ip, n, T) == -1)
+    // printf("\n\nSending ICMP packet ...\n\n");
+    // if (sendto(sockfd, buf, sizeof(struct icmp), 0, (struct sockaddr*)&dest_addr, sizeof(struct sockaddr)) == -1)
     // {
-    //     printf("Error while tracing route!\n");
+    //     perror("Error while sending packet!");
+    //     exit(EXIT_FAILURE);                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         
+    // }
+
+    // // Clear the buffer
+    // memset(buf, 0, BUF_SIZE);
+
+    // // Receive the packet
+    // struct sockaddr_in addr;
+    // socklen_t addr_len = sizeof(addr);
+
+    // if (recvfrom(sockfd, buf, BUF_SIZE, 0, (struct sockaddr*)&addr, &addr_len) == -1)
+    // {
+    //     perror("Error while receiving packet!");
     //     exit(EXIT_FAILURE);
     // }
-    // else
-    //     printf("Route traced successfully!\n");
+
+    // // Print the packet
+    // printf("Packet received from %s\n", inet_ntoa(addr.sin_addr));
+    
+    // // Get the IP header from the packet
+    // struct ip *ip_header = (struct ip*)buf;
+
+    // // Print the IP header fields
+    // printf("**** RECEIVED PACKET DETAILS ****\n\n");
+
+    // printf("IP Header :\n\n");
+    // printf("Version: %d\n", ip_header->ip_v);
+    // printf("Header Length: %d\n", ip_header->ip_hl);
+    // printf("Type of Service: %d\n", ip_header->ip_tos);
+    // printf("Total Length: %d\n", ntohs(ip_header->ip_len));
+    // printf("Identification: %d\n", ntohs(ip_header->ip_id));
+    // printf("Fragment Offset: %d\n", ntohs(ip_header->ip_off));
+    // printf("Time to Live: %d\n", ntohs(ip_header->ip_ttl));
+    // printf("Protocol: %d\n", ip_header->ip_p);
+    // printf("Header Checksum: %d\n", ntohs(ip_header->ip_sum));
+    // printf("Source IP Address: %s\n", inet_ntoa(*(struct in_addr *)&ip_header->ip_src.s_addr));
+    // printf("Destination IP Address: %s\n", inet_ntoa(*(struct in_addr *)&ip_header->ip_dst.s_addr));
+
+    // struct icmp* icmp_hdr = (struct icmp*) (buf + sizeof(struct ip));
+    // printf("\nICMP Header :\n\n");
+    // printf("ICMP type: %d\n", icmp_hdr->icmp_type);
+    // printf("ICMP code: %d\n", icmp_hdr->icmp_code);
+    // printf("ICMP checksum: %d\n", ntohs(icmp_hdr->icmp_cksum));
+    // printf("ICMP id: %d\n", ntohs(icmp_hdr->icmp_id));
+
+    // // Print the packet payload
+    // printf("Packet contents:\n");
+    // printf("%s\n", buf + sizeof(struct ip) + sizeof(struct icmp));
+
+    // close(sockfd);
+    // return 0;
+
+    // // // Trace route to the given IP
+    // // printf("Tracing route to %s...\n\n", ip);
+
+    // // if (traceroute(sockfd, ip, n, T) == -1)
+    // // {
+    // //     printf("Error while tracing route!\n");
+    // //     exit(EXIT_FAILURE);
+    // // }
+    // // else
+    // //     printf("Route traced successfully!\n");
 }
