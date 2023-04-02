@@ -132,9 +132,9 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
-    //set socket options
-    int opt;
-    // setsockopt(sockfd, IPPROTO_IP, IP_HDRINCL, &opt, sizeof(opt));
+    //set ttl value
+    int ttl = 1;
+    setsockopt(sockfd, IPPROTO_IP, IP_TTL, &ttl, sizeof(ttl));
 
     struct ip *iph;
     struct icmp *icmph;
@@ -142,8 +142,8 @@ int main(int argc, char *argv[])
 
     // Create a zero-data packet (only header, for checking latency)
     // iph = (struct ip*)buf;
-    // icmph = (struct icmp*)(buf + sizeof(struct ip));
-    // size_t size = sizeof(struct ip) + sizeof(struct icmp);
+    icmph = (struct icmp*)buf;
+    size_t size = sizeof(struct ip) + sizeof(struct icmp);
 
     // // Set IP header fields
     // iph->ip_v = 4;
@@ -152,30 +152,50 @@ int main(int argc, char *argv[])
     // iph->ip_len = size;
     // iph->ip_id = htons(54321);
     // iph->ip_off = 0;
-    // iph->ip_ttl = 2;
+    // iph->ip_ttl = 200;
     // iph->ip_p = IPPROTO_ICMP;
     // iph->ip_src.s_addr = inet_addr(src_ip);
     // iph->ip_dst.s_addr = inet_addr(dest_ip);
-
     // iph->ip_sum = 0;
-    // iph->ip_sum = checksum((uint16_t*)iph, sizeof(struct ip));
+    // iph->ip_sum = htons(checksum((uint16_t*)iph, sizeof(struct ip)));
 
     // Set ICMP header fields for ECHO_REQUEST
 
-    icmph = (struct icmp*)buf;
+    // icmph = (struct icmp*)buf;
     icmph->icmp_type = ICMP_ECHO;
     icmph->icmp_code = 0;
     icmph->icmp_id = htons(12345);
     icmph->icmp_seq = 0;
     icmph->icmp_cksum = 0;
-    icmph->icmp_cksum = checksum((uint16_t*)icmph, sizeof(struct icmp));
+    icmph->icmp_cksum = htons(checksum((uint16_t*)icmph, sizeof(struct icmp)));
 
     struct sockaddr_in dest_addr;
     dest_addr.sin_family = AF_INET;
     dest_addr.sin_addr.s_addr = inet_addr(dest_ip);
 
     // Send the packet
-    printf("Sending ICMP packet ...\n");
+
+    printf("\n\n**** SENT PACKET DETAILS ****\n\n");
+
+    printf("IP Header :\n\n");
+    printf("Version: %d\n", iph->ip_v);
+    printf("Header Length: %d\n", iph->ip_hl);
+    printf("Type of Service: %d\n", iph->ip_tos);
+    printf("Total Length: %d\n", iph->ip_len);
+    printf("Identification: %d\n", ntohs(iph->ip_id));
+    printf("Fragment Offset: %d\n", ntohs(iph->ip_off));
+    printf("Time to Live: %d\n", iph->ip_ttl);
+    printf("Protocol: %d\n", iph->ip_p);
+    printf("Header Checksum: %d\n", ntohs(iph->ip_sum));
+
+    printf("\nICMP Header :\n\n");
+    printf("Type: %d\n", icmph->icmp_type);
+    printf("Code: %d\n", icmph->icmp_code);
+    printf("Identifier: %d\n", ntohs(icmph->icmp_id));
+    printf("Sequence Number: %d\n", ntohs(icmph->icmp_seq));
+    printf("Checksum: %d\n", ntohs(icmph->icmp_cksum));
+
+    printf("\n\nSending ICMP packet ...\n\n");
     if (sendto(sockfd, buf, sizeof(struct icmp), 0, (struct sockaddr*)&dest_addr, sizeof(struct sockaddr)) == -1)
     {
         perror("Error while sending packet!");
@@ -202,23 +222,27 @@ int main(int argc, char *argv[])
     struct ip *ip_header = (struct ip*)buf;
 
     // Print the IP header fields
-    printf("IP Header:\n");
+    printf("**** RECEIVED PACKET DETAILS ****\n\n");
+
+    printf("IP Header :\n\n");
     printf("Version: %d\n", ip_header->ip_v);
     printf("Header Length: %d\n", ip_header->ip_hl);
     printf("Type of Service: %d\n", ip_header->ip_tos);
     printf("Total Length: %d\n", ntohs(ip_header->ip_len));
     printf("Identification: %d\n", ntohs(ip_header->ip_id));
     printf("Fragment Offset: %d\n", ntohs(ip_header->ip_off));
-    printf("Time to Live: %d\n", ip_header->ip_ttl);
+    printf("Time to Live: %d\n", ntohs(ip_header->ip_ttl));
     printf("Protocol: %d\n", ip_header->ip_p);
     printf("Header Checksum: %d\n", ntohs(ip_header->ip_sum));
-    // printf("Source IP Address: %s\n", inet_ntoa(*(struct in_addr *)&ip_header->ip_src.));
-    // printf("Destination IP Address: %s\n", inet_ntoa(*(struct in_addr *)&ip_header->daddr));
+    printf("Source IP Address: %s\n", inet_ntoa(*(struct in_addr *)&ip_header->ip_src.s_addr));
+    printf("Destination IP Address: %s\n", inet_ntoa(*(struct in_addr *)&ip_header->ip_dst.s_addr));
 
     struct icmp* icmp_hdr = (struct icmp*) (buf + sizeof(struct ip));
+    printf("\nICMP Header :\n\n");
     printf("ICMP type: %d\n", icmp_hdr->icmp_type);
     printf("ICMP code: %d\n", icmp_hdr->icmp_code);
-    printf("ICMP checksum: %d\n", icmp_hdr->icmp_cksum);
+    printf("ICMP checksum: %d\n", ntohs(icmp_hdr->icmp_cksum));
+    printf("ICMP id: %d\n", ntohs(icmp_hdr->icmp_id));
 
     // Print the packet payload
     printf("Packet contents:\n");
