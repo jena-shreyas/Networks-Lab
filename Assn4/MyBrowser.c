@@ -265,7 +265,6 @@ int main()
 
             // add newline at end of request header
             strcat(request, "\r\n\r\n");
-            strcat(request, "\r\n\r\n\r\n");
 
             printf("Request : \n\n%s", request);
         }
@@ -321,7 +320,7 @@ int main()
         servaddr.sin_port = htons(req.port);
         inet_aton(req.ip, &servaddr.sin_addr);
 
-        // servaddr.sin_port = htons(20000);
+        // servaddr.sin_port = htons(8080);
         // inet_aton("127.0.0.1", &servaddr.sin_addr);
 
         if ((connect(sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr))) < 0)

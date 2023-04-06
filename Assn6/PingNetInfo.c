@@ -266,7 +266,12 @@ int main(int argc, char *argv[])
     // Trace route to destination
     // printf("SRC IP IN MAIN : %s\n", src_ip);
     // printf("DEST IP IN MAIN : %s\n", dest_ip);
-    traceroute(sockfd, src_ip, dest_ip, n, T);
+
+    if (traceroute(sockfd, src_ip, dest_ip, n, T) == -1)
+    {
+        perror("Error while tracing route!");
+        exit(EXIT_FAILURE);
+    }
 
     // //set ttl value
     // int ttl = 5;

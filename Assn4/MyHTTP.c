@@ -10,6 +10,7 @@
 #include <time.h>
 #include <errno.h>
 #include <sys/stat.h>
+#include <dirent.h>
 
 #define CMD_SIZE 10
 #define MAX_BUF_SIZE 2048
@@ -20,6 +21,7 @@
 typedef struct message_
 {
     char cmd[CMD_SIZE];
+    char url[URL_SIZE];
     char file_path[URL_SIZE];
     char host[URL_SIZE];
     char ip[URL_SIZE];
@@ -30,13 +32,15 @@ typedef struct message_
     char if_mod_since[URL_SIZE];
     char content_lang[MAX_BUF_SIZE];
     char content_type[MAX_BUF_SIZE];
-    long long int content_len;
+    size_t content_len;
+    char date[URL_SIZE];
 } Message;
 
 
 Message *init_message(){
     Message *msg = (Message *)malloc(sizeof(Message));
     memset(msg->cmd, 0, CMD_SIZE);
+    memset(msg->url, 0, URL_SIZE);
     memset(msg->file_path, 0, URL_SIZE);
     memset(msg->host, 0, URL_SIZE);
     memset(msg->ip, 0, URL_SIZE);
@@ -46,6 +50,7 @@ Message *init_message(){
     memset(msg->if_mod_since, 0, URL_SIZE);
     memset(msg->content_lang, 0, MAX_BUF_SIZE);
     memset(msg->content_type, 0, MAX_BUF_SIZE);
+    memset(msg->date, 0, URL_SIZE);
     msg->content_len = 0;
     msg->port = 0;
     return msg;
@@ -134,11 +139,12 @@ char *convert_hostname_to_ip(char *host)
 //     return 0;
 // }
 
-int recv_request(int newsockfd, char *request){
+int recv_request(int newsockfd, char *request, long long int *tot_bytes_recv){
 
     // char *request = (char *)malloc(MAX_BUF_SIZE*sizeof(char));
     char buffer[MAX_BUF_SIZE];
-    int bytes_recv = 0, total_bytes_recv = 0, i = 0, curr_req_len = MAX_BUF_SIZE;
+    long long int total_bytes_recv = 0, curr_req_len = MAX_BUF_SIZE;
+    int bytes_recv = 0, i = 0;
     memset(buffer, 0, MAX_BUF_SIZE);
     memset(request, 0, MAX_BUF_SIZE);
 
@@ -177,6 +183,9 @@ int recv_request(int newsockfd, char *request){
             // continue;
             break;
     }
+
+    *tot_bytes_recv = total_bytes_recv;
+
     return 0;
 }
 
@@ -186,24 +195,14 @@ int parse_request(char *request, Message *msg, char *msg_body){
  
     char **tokens = (char **)malloc(10*sizeof(char *));
 
-    msg_body = strstr(request, "\r\n\r\n");
+    char *msg_body_start = strstr(request, "\r\n\r\n");
+
+    request[msg_body_start - request] = '\0';
 
     // first tokenise the indivdual headers
     char *temp = strtok(request, "\r\n");
     int i = 0;
 
-    // int cmd_flag = 0, accept_type_flag = 0, conn_type_flag = 0, host_flag = 0;
- 
-    // // tokenise first based on \r\n\r\n
-    // // char *request = strtok(input, "\r\n\r\n");
-    // char *msg_body = strstr(input, "\r\n\r\n");
-
-
-    // char **tokens = (char **)malloc(10*sizeof(char *));
-
-    // // first tokenise the indivdual headers
-    // char *temp = strtok(request, "\r\n");
-    // int i = 0;
 
     if (temp == NULL){ // headers are not properly seperated by \r\n since not a single token is found after tokenising by \r\n
         printf("The headers are not properly formatted.\n");
@@ -215,10 +214,9 @@ int parse_request(char *request, Message *msg, char *msg_body){
         temp = strtok(NULL, "\r\n");
     }
 
-    for (int j = 0; j < i; j++){
-        printf("i: %d, %s\n", j, tokens[j]);
-    }
-
+    // for (int j = 0; j < i; j++){
+    //     printf("i: %d, %s\n", j, tokens[j]);
+    // }
 
     for (int j = 0; j < i; j++){
 
@@ -228,11 +226,13 @@ int parse_request(char *request, Message *msg, char *msg_body){
             char *token = strtok(tokens[j], " ");
 
             strcpy(msg->cmd, token);
-            printf("Command: %s\n", msg->cmd);
+            // printf("Command: %s\n", msg->cmd);
             cmd_flag = 1;
 
             // now get the url
             token = strtok(NULL, " ");
+            strcpy(msg->url, token);
+            // printf("URL: %s\n", msg->url);
 
             // to get file name, get the position of first '/'
             char *p = strstr(token, "//") + 2;
@@ -240,14 +240,14 @@ int parse_request(char *request, Message *msg, char *msg_body){
             strcpy(msg->ip, convert_hostname_to_ip(token));
             token = strtok(NULL, ":");
             strcpy(msg->file_path, token);
-            printf("File path: %s\n", msg->file_path);
+            // printf("File path: %s\n", msg->file_path);
 
             // now get the port number
             if ( (token = strtok(NULL, ":")) == NULL)
                 msg->port = 80;
             else
                 msg->port = atoi(token);
-            printf("Port: %d\n", msg->port);
+            // printf("Port: %d\n", msg->port);
         }
 
         // identify the header with the host
@@ -255,7 +255,7 @@ int parse_request(char *request, Message *msg, char *msg_body){
             char *token = strtok(tokens[j], " ");
             token = strtok(NULL, " ");
             strcpy(msg->host, token);
-            printf("Host: %s\n", msg->host);
+            // printf("Host: %s\n", msg->host);
             host_flag = 1;
         }
 
@@ -264,10 +264,10 @@ int parse_request(char *request, Message *msg, char *msg_body){
             char *token = strtok(tokens[j], " ");
             token = strtok(NULL, " ");
             strcpy(msg->conn_type, token);
-            printf("Connection type: %s\n", msg->conn_type);
+            // printf("Connection type: %s\n", msg->conn_type);
 
             if (strcmp(msg->conn_type, "keep-alive") != 0 || strcmp(msg->conn_type, "close") != 0){
-                printf("The connection type is supported by the server.\n");
+                // printf("The connection type is supported by the server.\n");
                 conn_type_flag = 1;
             }
 
@@ -281,7 +281,7 @@ int parse_request(char *request, Message *msg, char *msg_body){
             // printf("Accept type: %s\n", msg->accept_type);
 
             if (strcmp(msg->accept_type, "text/html") != 0 || strcmp(msg->accept_type, "application/pdf") != 0 || strcmp(msg->accept_type, "image/jpeg") != 0 || strcmp(msg->accept_type, "text/*") != 0){
-                printf("The requested file type is supported by the server.\n");
+                // printf("The requested file type is supported by the server.\n");
                 accept_type_flag = 1;
             }
         }
@@ -306,30 +306,44 @@ int parse_request(char *request, Message *msg, char *msg_body){
             char *token = strtok(tokens[j], " ");
             token = strtok(NULL, " ");
             strcpy(msg->content_lang, token);
-            printf("Content language: %s\n", msg->content_lang);
+            // printf("Content language: %s\n", msg->content_lang);
         }
 
         else if ( strstr(tokens[j], "Content-Length") != NULL){
             char *token = strtok(tokens[j], " ");
             token = strtok(NULL, " ");
-            msg->content_len = atoi(token);
-            printf("Content length: %lld\n", msg->content_len);
+            msg->content_len = atol(token);
+
+            
+            msg_body = (char *)realloc(msg_body, msg->content_len + MAX_BUF_SIZE);
+            msg_body = msg_body_start + 4;
+
+            // printf("Content length: %lld\n", msg->content_len);
         }
 
         else if ( strstr(tokens[j], "Content-Type") != NULL){
             char *token = strtok(tokens[j], " ");
             token = strtok(NULL, " ");
             strcpy(msg->content_type, token);
-            printf("Content type: %s\n", msg->content_type);
+            // printf("Content type: %s\n", msg->content_type);
         }
+
+        else if ( strstr(tokens[j], "Date:") != NULL){
+            char *token = strtok(tokens[j], " ");
+            token = strtok(NULL, "\r\n");
+            strcpy(msg->date, token);
+            // printf("Date: %s\n", msg->date);
+        }
+
+
     }
 
-    if (cmd_flag  == 1 && host_flag == 1 && conn_type_flag == 1 && accept_type_flag == 1){
-        printf("The request is valid.\n");
+    if (cmd_flag  == 1 && host_flag == 1 && conn_type_flag == 1){
+        printf("\nThe request is valid.\n");
         return 0;
     }
     else{
-        printf("The request is invalid.\n");
+        printf("\nThe request is invalid.\n");
         return -1;
     }
 
@@ -377,7 +391,7 @@ void add_date_server_name_headers(char *response){
     // get the local host name
     char *host_name = (char *)malloc(100*sizeof(char));
     gethostname(host_name, 100);
-    printf("Host name: %s\n", host_name);
+    // printf("Host name: %s\n", host_name);
     strcat(response, host_name);
 
     return;
@@ -405,6 +419,8 @@ int main(){
         exit(1);
     }
 
+    FILE *fp_log = fopen("AccessLog.txt", "a");
+
     printf("Server is running on port 8080.\n");
 
     listen(sockfd, 10);
@@ -430,28 +446,54 @@ int main(){
 
             // receive the request from the client in chunks 
             char *request = (char *)malloc(MAX_BUF_SIZE*sizeof(char));
-            int ret = recv_request(newsockfd, request);
+            
+            long long int total_bytes_received = 0;
+            int ret = recv_request(newsockfd, request, &total_bytes_received);
             printf("Received complete.\n");
 
             if (ret == -1){
                 close(newsockfd);
                 exit(0);
             }
+           
 
-            printf("Received request from the client:\n%s\n", request);
+            printf("Received request from the client:\n\n");
+            for (int i = 0; i < total_bytes_received; i++){
+                printf("%c", request[i]);
+                if (request[i] == '\r' && request[i+1] == '\n' && request[i+2] == '\r' && request[i+3] == '\n')
+                    break;
+            }
+            printf("\n");
+
+
 
             // Message *msg = (Message *)malloc(sizeof(Message));
             Message *msg = init_message();
 
             char *response = (char *)malloc(MAX_SIZE*sizeof(char));
+            memset(response, 0, MAX_SIZE);
             int curr_resp_size = MAX_SIZE;
-            char *file_content = (char *)malloc(MAX_SIZE*sizeof(char));
+            char *msg_body_ptr = (char *)malloc(MAX_SIZE*sizeof(char));
+            char *temp_ptr = strstr(request, "\r\n\r\n");
 
-            int res = parse_request(request, msg, file_content);
+            int res = parse_request(request, msg, msg_body_ptr);
+            size_t put_file_offset = ((size_t)msg_body_ptr - (size_t)request)/sizeof(char);
+            
+            // convert the msg->date to time_t format in local time
+            struct tm tm;
+            strptime(msg->date, "%a, %d %b %Y %H:%M:%S %Z", &tm);
+    
+            // write the request to the log file
+            fprintf(fp_log, "%02d%02d%02d:%02d%02d%02d:", tm.tm_mday, tm.tm_mon + 1, tm.tm_year + 1900, tm.tm_hour, tm.tm_min, tm.tm_sec);
+            fprintf(fp_log, "%s:%d:%s:%s\n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port), msg->cmd, msg->url);
             
             int offset = 0, file_len = 0;
+
+
+
             if (res == -1){
-            
+                memset(response, 0, MAX_SIZE);
+
                 // send the error message to the client
                 strcpy(response, "HTTP/1.1 400 Bad Request");
 
@@ -473,6 +515,7 @@ int main(){
                 // send the response to the client
                 if (strcmp(msg->cmd, "GET") == 0){
                     // send the file to the client
+                    memset(response, 0, MAX_SIZE);
 
                     FILE *fp;
                     file_len = 0;
@@ -576,8 +619,8 @@ int main(){
                         fclose(fp);
 
                         // printf("File read successfully.\n");
-                        FILE *fp1 = fopen("test.txt", "w");
-                        fwrite(file_content_buff, sizeof(char), file_content_len, fp1);
+                        // FILE *fp1 = fopen("test.txt", "w");
+                        // fwrite(file_content_buff, sizeof(char), file_content_len, fp1);
 
                         // send the response to the client if there is no error in reading the file
                         if (file_send_flag == 1){
@@ -645,7 +688,7 @@ int main(){
                     // add the content of the file to the response if the file_send_flag is set
                     if (file_send_flag == 1){
                         strcat(response, "\r\n\r\n");
-                        printf("Sending the response to the client.\n");
+                        // printf("Sending the response to the client.\n");
                         offset = strlen(response);
                         int request_size = MAX_SIZE;
 
@@ -668,7 +711,59 @@ int main(){
                 }
 
                 else if (strcmp(msg->cmd, "PUT") == 0){
-                    //
+                    response = (char *)realloc(response, MAX_SIZE*sizeof(char));
+                    memset(response, 0, MAX_SIZE);
+                    // strcpy(response, "HTTP/1.1 501 Not Implemented");
+
+                    // extract the subdirectory from the url 
+                    char *subdir = (char *)malloc(100*sizeof(char));
+                    char *file_ptr = strrchr(msg->file_path, '/') + 1;
+                    int subdir_len = strlen(msg->file_path) - strlen(file_ptr);
+                    strncpy(subdir, msg->file_path, subdir_len);
+                    subdir[subdir_len] = '\0';
+                    printf("Subdirectory: %s\n", subdir);
+                    printf("File name: %s\n", file_ptr);
+
+                    // check if the subdirectory exists (wrt to the current directory)
+                    DIR *dir = opendir(subdir);
+                    if (dir == NULL){
+                        strcat(response, "HTTP/1.1 404 Not Found");
+                        add_date_server_name_headers(response);
+                        add_standard_headers(response);
+                    }
+
+                    // start reading the contents of the file in a seperate buffer
+                    else{
+                        printf("Subdirectory exists.\n");
+                        FILE *write_fp = fopen(msg->file_path, "w");
+                        if (write_fp == NULL){
+                            strcat(response, "HTTP/1.1 500 Internal Server Error");
+                            add_date_server_name_headers(response);
+                            add_standard_headers(response);
+                            perror("Error opening the file to write the contents of the file.\n");
+                            // exit(1);
+                        }
+
+                        else{
+                            // write the file contents to the file
+                            strcat(response, "HTTP/1.1 200 OK");
+                            printf("Content length: %zu\n", msg->content_len);
+                            printf("Content: %s\n", msg_body_ptr);
+                            long long int curr_bytes_written = 0;
+                            
+                            curr_bytes_written = fwrite(temp_ptr + 4, sizeof(char), msg->content_len, write_fp);
+
+
+                            printf("Bytes written: %lld\n", curr_bytes_written);
+
+                            add_date_server_name_headers(response);
+                            add_standard_headers(response);
+                        }
+                        fclose(write_fp);
+                    }
+
+
+
                 }
 
             }
@@ -684,7 +779,7 @@ int main(){
             }
 
             // parsing the http request to get the command, url, host, port
-            printf("Closing the connection with the client.\n");
+            printf("\n\nClosing the connection with the client.\n");
             close(newsockfd);
             exit(0);
             
@@ -694,6 +789,7 @@ int main(){
     
     }
 
+    fclose(fp_log);
     close(sockfd);
     return 0;
 
